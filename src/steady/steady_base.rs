@@ -45,6 +45,7 @@ pub trait SteadyBase {
         let time_0 = Instant::now();
 
         // initial assembly of A_1 and b_1
+        vars.update_function(0.0);
         vars.update_unknown(&x_iter_vec);
         self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size);
 
@@ -66,6 +67,7 @@ pub trait SteadyBase {
 
             // reassemble A_{k+1} and b_{k+1} with x_{k+1}
             // assumed that a_mat and b_vec are reset within assemble_matrix
+            vars.update_function(0.0);
             vars.update_unknown(&x_damp_new);
             self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size);
 
