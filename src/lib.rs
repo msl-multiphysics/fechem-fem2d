@@ -9,7 +9,7 @@ pub mod steady;
 pub use crate::base::error::*;
 pub use crate::base::geom_bnd::*;
 pub use crate::base::geom_dom::*;
-pub use crate::base::io_vtu::*;
+pub use crate::base::write_vtu::*;
 pub use crate::base::itg_bnd::*;
 pub use crate::base::itg_dom::*;
 pub use crate::base::mesh::*;

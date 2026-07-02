@@ -18,6 +18,19 @@ pub enum FEChemError {
         file_path: String,
     },
 
+    #[error("{caller}: Could not read mesh file {file_path}: {source}")]
+    MeshFileRead {
+        caller: String,
+        file_path: String,
+        source: std::io::Error,
+    },
+
+    #[error("{caller}: Invalid Gmsh mesh: {message}")]
+    InvalidGmsh {
+        caller: String,
+        message: String,
+    },
+
     #[error("Invalid element type")]
     InvalidElementType,
 

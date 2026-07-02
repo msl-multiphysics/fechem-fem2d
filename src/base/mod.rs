@@ -1,10 +1,12 @@
 pub mod error;
 pub mod geom_bnd;
 pub mod geom_dom;
-pub mod io_vtu;
 pub mod itg_bnd;
 pub mod itg_dom;
 pub mod mesh;
+pub mod read_gmsh;
 pub mod scl_bnd;
 pub mod scl_dom;
 pub mod vars;
+pub mod write_csv;
+pub mod write_vtu;

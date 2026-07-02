@@ -25,6 +25,12 @@ pub struct Variables {
 }
 
 impl Variables {
+    pub fn new(file_path: String) -> Result<Variables, FEChemError> {
+        let mut vars = Variables::default();
+        vars.mesh = Mesh::new(file_path)?;
+        Ok(vars)
+    }
+
     pub fn new_from_bounds(x_min: f64, y_min: f64, x_max: f64, y_max: f64, num_elem_x: usize, num_elem_y: usize) -> Result<Variables, FEChemError> {
         let mut vars = Variables::default();
         vars.mesh = Mesh::new_from_bounds(x_min, y_min, x_max, y_max, num_elem_x, num_elem_y)?;
@@ -65,9 +71,9 @@ impl Variables {
         Ok(scldom_id)
     }
 
-    pub fn add_sclbnd_con(&mut self, bnd_id: usize, value_const: f64) -> Result<usize, FEChemError> {
+    pub fn add_sclbnd_con(&mut self, bnd_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
         let sclbnd_id = self.scl_bnd.len();
-        let sclbnd = ScalarBoundary::new_from_constant(sclbnd_id, &self.bnd[bnd_id], value_const)?;
+        let sclbnd = ScalarBoundary::new_from_constant(sclbnd_id, &self.bnd[bnd_id], value_const, file_path)?;
         self.scl_bnd.push(sclbnd);
         Ok(sclbnd_id)
     }
@@ -92,6 +98,10 @@ impl Variables {
         for scldom in self.scl_dom.iter() {
             let dom = &self.dom[scldom.dom_id];
             scldom.write(dom, ts)?;
+        }
+        for sclbnd in self.scl_bnd.iter() {
+            let bnd = &self.bnd[sclbnd.bnd_id];
+            sclbnd.write(bnd, ts)?;
         }
 
         Ok(())

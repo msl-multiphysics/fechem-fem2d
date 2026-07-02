@@ -1,4 +1,5 @@
 use crate::base::error::FEChemError;
+use crate::base::read_gmsh::read_gmsh_mesh;
 
 #[derive(Default)]
 pub struct Mesh {
@@ -23,6 +24,10 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    pub fn new(file_path: String) -> Result<Mesh, FEChemError> {
+        read_gmsh_mesh(&file_path)
+    }
+
     pub fn new_from_bounds(x_min: f64, y_min: f64, x_max: f64, y_max: f64, num_elm_x: usize, num_elm_y: usize) -> Result<Mesh, FEChemError> {
         // initialize Mesh
         let mut dom = Mesh::default();

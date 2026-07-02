@@ -1,6 +1,7 @@
 use crate::base::error::FEChemError;
 use crate::base::geom_dom::Domain;
-use crate::base::io_vtu::write_scldom_vtu;
+use crate::base::write_csv::write_scldom_csv;
+use crate::base::write_vtu::write_scldom_vtu;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum ScalarDomainType {
@@ -118,6 +119,7 @@ impl ScalarDomain {
     pub fn write(&self, dom: &Domain, ts: usize) -> Result<(), FEChemError> {
         // // write depending on file type
         match self.file_type.as_str() {
+            "csv" => write_scldom_csv(&dom, &self, ts)?,
             "vtu" => write_scldom_vtu(&dom, &self, ts)?,
             "" => (),  // do nothing if file type is empty
             _ => panic!("Unsupported file type: {}", self.file_type),
