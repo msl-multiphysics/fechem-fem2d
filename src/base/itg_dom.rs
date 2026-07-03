@@ -8,13 +8,8 @@ pub struct IntegralDomain {
     pub itgdom_id: usize,  // must be the same as the domain id
     pub dom_id: usize,  // domain this integral is attached to
 
-    // element indexing
-    // e - element
-    // q - quadrature point
-    // v - node point
-
     // quadrature point data
-    // to be computed when struct is created
+    // e - element; q - quadrature point; v - node point
     pub num_quad: Vec<usize>,  // [e] -> number of quadrature points per element
     pub quad_x: Vec<Vec<f64>>,  // [e][q] -> x coordinates
     pub quad_y: Vec<Vec<f64>>,  // [e][q] -> y coordinates
@@ -36,7 +31,7 @@ impl IntegralDomain {
 
         // iterate through quadrature points
         for eid in 0..dom.num_elem {
-            match dom.elem_node[eid] {
+            match dom.elem_node_num[eid] {
                 3 => {compute_tri3(&mut itgdom, dom, eid);}
                 4 => {compute_quad4(&mut itgdom, dom, eid);}
                 _ => {return Err(FEChemError::InvalidElementType);}

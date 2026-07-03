@@ -30,7 +30,7 @@ impl OperatorSource {
 }
 
 impl OperatorBase for OperatorSource {
-    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, factor: f64) {    
+    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {    
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -42,33 +42,32 @@ impl OperatorBase for OperatorSource {
             // step 1: assemble local vector
 
             // initialize local vectors
-            let num_node = dom.elem_node[eid];
+            let num_node = dom.elem_node_num[eid];
             let mut b_loc = vec![0.0; num_node];
 
             // get integral data
             let num_quad = itg.num_quad[eid];
             let jac_det = &itg.jac_det[eid];
 
-            // get properties
-            let src = &src.quad_value[eid];
-
             // assemble local vector
             match num_node {
                 3 => {
                     for qid in 0..num_quad {
                         let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
-                        let coeff = -factor * W_TRI3[qid] * jac_det[qid];
+                        let src_val = src.compute_quad(vars, eid, qid, t);
+                        let coeff = -factor * src_val * W_TRI3[qid] * jac_det[qid];
                         for v in 0..num_node {
-                            b_loc[v] += coeff * src[qid] * n[v];
+                            b_loc[v] += coeff * n[v];
                         }
                     }
                 }
                 4 => {
                     for qid in 0..num_quad {
                         let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
-                        let coeff = -factor * W_QUAD4[qid] * jac_det[qid];
+                        let src_val = src.compute_quad(vars, eid, qid, t);
+                        let coeff = -factor * src_val * W_QUAD4[qid] * jac_det[qid];
                         for v in 0..num_node {
-                            b_loc[v] += coeff * src[qid] * n[v];
+                            b_loc[v] += coeff * n[v];
                         }
                     }
                 }

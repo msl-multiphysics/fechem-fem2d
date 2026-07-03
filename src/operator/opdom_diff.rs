@@ -32,7 +32,7 @@ impl OperatorDiffusion {
 }
 
 impl OperatorBase for OperatorDiffusion {
-    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, factor: f64) {    
+    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {    
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -44,7 +44,7 @@ impl OperatorBase for OperatorDiffusion {
             // step 1: assemble local matrix
 
             // initialize local matrices
-            let num_node = dom.elem_node[eid];
+            let num_node = dom.elem_node_num[eid];
             let mut a_loc = vec![vec![0.0; num_node]; num_node];
 
             // get integral data
@@ -53,27 +53,26 @@ impl OperatorBase for OperatorDiffusion {
             let gradn_x = &itg.gradn_x[eid];
             let gradn_y = &itg.gradn_y[eid];
 
-            // get properties
-            let diff = &diff.quad_value[eid];
-
             // assemble local matrix
             match num_node {
                 3 => {
                     for qid in 0..num_quad {
-                        let coeff = factor * W_TRI3[qid] * jac_det[qid];
+                        let diff_val = diff.compute_quad(vars, eid, qid, t);
+                        let coeff = factor * diff_val * W_TRI3[qid] * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff * diff[qid] * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }
                 }
                 4 => {
                     for qid in 0..num_quad {
-                        let coeff = factor * W_QUAD4[qid] * jac_det[qid];
+                        let diff_val = diff.compute_quad(vars, eid, qid, t);
+                        let coeff = factor * diff_val * W_QUAD4[qid] * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff * diff[qid] * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }

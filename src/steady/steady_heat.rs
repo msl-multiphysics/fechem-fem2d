@@ -1,3 +1,4 @@
+use crate::base::scl_dom::ScalarDomainType;
 use crate::base::vars::Variables;
 use crate::operator::prelude::*;
 use crate::steady::steady_base::SteadyBase;
@@ -57,7 +58,7 @@ impl SteadyBase for SteadyHeat {
         let mut xid = 0;
         for (&dom_id, &temp_id) in &self.itr_temp {
             let num_node = vars.dom[dom_id].num_node;
-            vars.scl_dom[temp_id].unk_start = xid;
+            vars.scl_dom[temp_id].scl_type = ScalarDomainType::Unknown { start: xid };
             xid += num_node;
         }
 
@@ -117,16 +118,16 @@ impl SteadyBase for SteadyHeat {
         
         // assemble internal data
         for (oper_cond, oper_src) in &self.oper_itr {
-            oper_cond.apply(vars, &mut a_triplet, b_vec, 1.0);
-            oper_src.apply(vars, &mut a_triplet, b_vec, 1.0);
+            oper_cond.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_src.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
         }
 
         // assemble boundary data
         for oper_dir in &self.oper_bnd_temp {
-            oper_dir.apply(vars, &mut a_triplet, b_vec, 1.0);
+            oper_dir.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
         }
         for oper_neu in &self.oper_bnd_hflx {
-            oper_neu.apply(vars, &mut a_triplet, b_vec, 1.0);
+            oper_neu.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
         }
 
         // create sparse matrix from triplet

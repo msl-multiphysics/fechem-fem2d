@@ -30,7 +30,7 @@ impl OperatorNeumannDiffusion {
 }
 
 impl OperatorBase for OperatorNeumannDiffusion {
-    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, factor: f64) {    
+    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {    
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let itg = &vars.itg_bnd[self.bnd_id];
@@ -42,24 +42,22 @@ impl OperatorBase for OperatorNeumannDiffusion {
             // step 1: assemble local vector
 
             // initialize local vectors
-            let num_node = bnd.elem_node[eid];
+            let num_node = bnd.elem_node_num[eid];
             let mut b_loc = vec![0.0; num_node];
 
             // get integral data
             let num_quad = itg.num_quad[eid];
             let jac_det = &itg.jac_det[eid];
 
-            // get properties
-            let flx = &flx.quad_value[eid];
-
             // assemble local vector
             match num_node {
                 2 => {
                     for qid in 0..num_quad {
                         let n = lin2_eval(A_LIN2[qid]);
-                        let coeff = -factor * W_LIN2[qid] * jac_det[qid].sqrt();
+                        let flx_val = flx.compute_quad(vars, eid, qid, t);
+                        let coeff = -factor * flx_val * W_LIN2[qid] * jac_det[qid].sqrt();
                         for v in 0..num_node {
-                            b_loc[v] += coeff * flx[qid] * n[v];
+                            b_loc[v] += coeff * n[v];
                         }
                     }
                 }

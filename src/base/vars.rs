@@ -4,8 +4,8 @@ use crate::base::geom_dom::Domain;
 use crate::base::itg_bnd::IntegralBoundary;
 use crate::base::itg_dom::IntegralDomain;
 use crate::base::mesh::Mesh;
-use crate::base::scl_bnd::{ScalarBoundary, sclbnd_update_function};
-use crate::base::scl_dom::{ScalarDomain, scldom_update_function};
+use crate::base::scl_bnd::{ScalarBoundary, update_function_sclbnd};
+use crate::base::scl_dom::{ScalarDomain, update_function_scldom};
 use faer::Col;
 
 #[derive(Default)]
@@ -64,7 +64,7 @@ impl Variables {
         Ok(scldom_id)
     }
 
-    pub fn add_scldom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
+    pub fn add_scldom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
         // TODO: check that scldom_ids are unknown-type scalars
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_function(scldom_id, &self.dom[dom_id], value_func, scldom_ids, file_path)?;
@@ -86,23 +86,12 @@ impl Variables {
         Ok(sclbnd_id)
     }
 
-    pub fn add_sclbnd_fun(&mut self, bnd_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
+    pub fn add_sclbnd_fun(&mut self, bnd_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
         // TODO: check that scldom_ids are unknown-type scalars
         let sclbnd_id = self.scl_bnd.len();
         let sclbnd = ScalarBoundary::new_from_function(sclbnd_id, &self.bnd[bnd_id], value_func, scldom_ids, file_path)?;
         self.scl_bnd.push(sclbnd);
         Ok(sclbnd_id)
-    }
-
-    pub fn update_function(&mut self, t: f64) {
-        // iterate over scalars
-        // skips if not function type
-        for scldom_id in 0..self.scl_dom.len() {
-            scldom_update_function(self, scldom_id, t);
-        }
-        for sclbnd_id in 0..self.scl_bnd.len() {
-            sclbnd_update_function(self, sclbnd_id, t);
-        }
     }
 
     pub fn update_unknown(&mut self, x_vec: &Col<f64>) {
@@ -114,18 +103,22 @@ impl Variables {
         }
     }
 
-    pub fn write_scalar(&mut self, ts: usize) -> Result<(), FEChemError> {
+    pub fn write_scalar(&mut self, t: f64, ts: usize) -> Result<(), FEChemError> {
+        // iterate over writers
+        for scldom_id in 0..self.scl_dom.len() {
+            update_function_scldom(self, scldom_id, t);
+        }
+        for sclbnd_id in 0..self.scl_bnd.len() {
+            update_function_sclbnd(self, sclbnd_id, t);
+        }
+
         // iterate over writers
         for scldom in self.scl_dom.iter_mut() {
             let dom = &self.dom[scldom.dom_id];
-            let itgdom = &self.itg_dom[scldom.dom_id];
-            scldom.transfer_quad_node(dom, itgdom);  // skips if not function type
             scldom.write(dom, ts)?;
         }
         for sclbnd in self.scl_bnd.iter_mut() {
             let bnd = &self.bnd[sclbnd.bnd_id];
-            let itgbnd = &self.itg_bnd[sclbnd.bnd_id];
-            sclbnd.transfer_quad_node(bnd, itgbnd);  // skips if not function type
             sclbnd.write(bnd, ts)?;
         }
 

@@ -23,7 +23,7 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     let mut cell_types: Vec<u8> = Vec::with_capacity(dom.num_elem);
     let mut offset = 0usize;
     for eid in 0..dom.num_elem {
-        let nnode = dom.elem_node[eid];
+        let nnode = dom.elem_node_num[eid];
         for loc in 0..nnode {
             connectivity.push(dom.elem_node_id[eid][loc]);
         }
@@ -125,7 +125,7 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     let mut cell_types: Vec<u8> = Vec::with_capacity(bnd.num_elem);
     let mut offset = 0usize;
     for eid in 0..bnd.num_elem {
-        let nnode = bnd.elem_node[eid];
+        let nnode = bnd.elem_node_num[eid];
         for loc in 0..nnode {
             connectivity.push(bnd.elem_node_id[eid][loc]);
         }

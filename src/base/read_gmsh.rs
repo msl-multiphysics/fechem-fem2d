@@ -664,12 +664,12 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
         node_y: vert_y,
         num_elm2d,
         num_reg2d,
-        elm2d_node,
+        elm2d_node_num: elm2d_node,
         elm2d_node_id,
         reg2d_elem_id,
         num_elm1d,
         num_reg1d,
-        elm1d_node,
+        elm1d_node_num: elm1d_node,
         elm1d_node_id,
         reg1d_elem_id,
     })
@@ -685,9 +685,9 @@ mod tests {
     fn assert_mesh_topology(mesh: &Mesh) {
         assert_eq!(mesh.node_x.len(), mesh.num_node);
         assert_eq!(mesh.node_y.len(), mesh.num_node);
-        assert_eq!(mesh.elm2d_node.len(), mesh.num_elm2d);
+        assert_eq!(mesh.elm2d_node_num.len(), mesh.num_elm2d);
         assert_eq!(mesh.elm2d_node_id.len(), mesh.num_elm2d);
-        assert_eq!(mesh.elm1d_node.len(), mesh.num_elm1d);
+        assert_eq!(mesh.elm1d_node_num.len(), mesh.num_elm1d);
         assert_eq!(mesh.elm1d_node_id.len(), mesh.num_elm1d);
         assert_eq!(mesh.reg2d_elem_id.len(), mesh.num_reg2d);
         assert_eq!(mesh.reg1d_elem_id.len(), mesh.num_reg1d);
@@ -699,7 +699,7 @@ mod tests {
         assert_eq!(reg1d_count, mesh.num_elm1d);
 
         for (ei, nodes) in mesh.elm2d_node_id.iter().enumerate() {
-            assert_eq!(nodes.len(), mesh.elm2d_node[ei]);
+            assert_eq!(nodes.len(), mesh.elm2d_node_num[ei]);
             assert!(nodes.len() == 3 || nodes.len() == 4);
             for &nid in nodes {
                 assert!(nid < mesh.num_node);
@@ -708,7 +708,7 @@ mod tests {
 
         for (ei, nodes) in mesh.elm1d_node_id.iter().enumerate() {
             assert_eq!(nodes.len(), 2);
-            assert_eq!(mesh.elm1d_node[ei], 2);
+            assert_eq!(mesh.elm1d_node_num[ei], 2);
             for &nid in nodes {
                 assert!(nid < mesh.num_node);
             }

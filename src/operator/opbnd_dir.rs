@@ -29,7 +29,7 @@ impl OperatorDirichlet {
 }
 
 impl OperatorBase for OperatorDirichlet {
-    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, factor: f64) {    
+    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, _t: f64, factor: f64) {    
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let val = &vars.scl_bnd[self.val_id];
@@ -38,7 +38,7 @@ impl OperatorBase for OperatorDirichlet {
         for eid in 0..bnd.num_elem {
             // step 1: get local nodes
 
-            let num_node = bnd.elem_node[eid];
+            let num_node = bnd.elem_node_num[eid];
             let node_id = &bnd.elem_node_id[eid];
 
             // step 2: assemble global matrix and vector

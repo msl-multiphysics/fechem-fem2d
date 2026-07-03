@@ -8,13 +8,8 @@ pub struct IntegralBoundary {
     pub itgbnd_id: usize,
     pub bnd_id: usize,  // boundary this integral is attached to
 
-    // element indexing
-    // e - element
-    // q - quadrature point
-    // v - node point
-
     // quadrature point data
-    // to be computed when struct is created
+    // e - element; q - quadrature point; v - node point
     pub num_quad: Vec<usize>,  // [e] -> number of quadrature points per element
     pub quad_x: Vec<Vec<f64>>,  // [e][q] -> x coordinates
     pub quad_y: Vec<Vec<f64>>,  // [e][q] -> y coordinates
@@ -36,7 +31,7 @@ impl IntegralBoundary {
 
         // iterate through quadrature points
         for eid in 0..bnd.num_elem {
-            match bnd.elem_node[eid] {
+            match bnd.elem_node_num[eid] {
                 2 => {compute_lin2(&mut itgbnd, bnd, eid);}
                 _ => {return Err(FEChemError::InvalidElementType);}
             }
