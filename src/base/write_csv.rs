@@ -31,7 +31,11 @@ pub fn write_scldom_csv(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     Ok(())
 }
 
-pub fn write_sclbnd_csv(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> Result<(), FEChemError> {
+pub fn write_sclbnd_csv(
+    bnd: &Boundary,
+    sclbnd: &ScalarBoundary,
+    ts: usize,
+) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.csv", sclbnd.file_name, ts);
     let mut file = match File::create(&file_path) {
         Ok(f) => f,

@@ -10,7 +10,7 @@ pub struct OperatorDiffusion {
     pub dom_id: usize,
 
     // scalars
-    pub diff_id: usize,  // diffusion coefficient
+    pub diff_id: usize, // diffusion coefficient
     pub unk_id: usize,  // unknown scalar
     pub drv_id: usize,  // driving scalar
 }
@@ -32,7 +32,14 @@ impl OperatorDiffusion {
 }
 
 impl OperatorBase for OperatorDiffusion {
-    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {    
+    fn apply(
+        &self,
+        vars: &Variables,
+        a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
+        _b_vec: &mut Col<f64>,
+        t: f64,
+        factor: f64,
+    ) {
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -61,7 +68,9 @@ impl OperatorBase for OperatorDiffusion {
                         let coeff = factor * diff_val * W_TRI3[qid] * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff
+                                    * (gradn_x[qid][v] * gradn_x[qid][j]
+                                        + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }
@@ -72,12 +81,16 @@ impl OperatorBase for OperatorDiffusion {
                         let coeff = factor * diff_val * W_QUAD4[qid] * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff
+                                    * (gradn_x[qid][v] * gradn_x[qid][j]
+                                        + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }
                 }
-                _ => {panic!("Invalid element type");}
+                _ => {
+                    panic!("Invalid element type");
+                }
             }
 
             // step 2: assemble global matrix
@@ -96,11 +109,17 @@ impl OperatorBase for OperatorDiffusion {
                     }
 
                     // add to global matrix
-                    self.add_a(vars, a_triplet, self.unk_id, nid_v, self.drv_id, nid_j, a_loc[v][j]);
+                    self.add_a_sclscl(
+                        vars,
+                        a_triplet,
+                        self.unk_id,
+                        nid_v,
+                        self.drv_id,
+                        nid_j,
+                        a_loc[v][j],
+                    );
                 }
             }
-
         }
-    
     }
 }

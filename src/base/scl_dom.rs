@@ -1,9 +1,9 @@
 use crate::base::error::FEChemError;
 use crate::base::geom_bnd::Boundary;
 use crate::base::geom_dom::Domain;
+use crate::base::vars::Variables;
 use crate::base::write_csv::write_scldom_csv;
 use crate::base::write_vtu::write_scldom_vtu;
-use crate::base::vars::Variables;
 use crate::shape::prelude::*;
 use faer::Col;
 
@@ -30,20 +30,25 @@ impl Default for ScalarDomainType {
 pub struct ScalarDomain {
     // ids
     pub scldom_id: usize,
-    pub dom_id: usize,  // domain this scalar is attached to
+    pub dom_id: usize, // domain this scalar is attached to
 
     // values
     pub scl_type: ScalarDomainType,
-    pub node_value: Vec<f64>,  // [nid] -> values at nodes
+    pub node_value: Vec<f64>, // [nid] -> values at nodes
     pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
 
     // output file
-    pub file_name: String,  // path to file without extension
-    pub file_type: String,  // leave empty if no output
+    pub file_name: String, // path to file without extension
+    pub file_type: String, // leave empty if no output
 }
 
 impl ScalarDomain {
-    pub fn new_from_constant(scldom_id: usize, dom: &Domain, value_const: f64, file_path: String) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_constant(
+        scldom_id: usize,
+        dom: &Domain,
+        value_const: f64,
+        file_path: String,
+    ) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -60,15 +65,21 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
-            scldom.file_name = parts[0..parts.len()-1].join(".");
-            scldom.file_type = parts[parts.len()-1].to_string();
+            scldom.file_name = parts[0..parts.len() - 1].join(".");
+            scldom.file_type = parts[parts.len() - 1].to_string();
         }
 
         // result
         Ok(scldom)
     }
 
-    pub fn new_from_function(scldom_id: usize, dom: &Domain, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_function(
+        scldom_id: usize,
+        dom: &Domain,
+        value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
+        scldom_ids: Vec<usize>,
+        file_path: String,
+    ) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -89,15 +100,20 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
-            scldom.file_name = parts[0..parts.len()-1].join(".");
-            scldom.file_type = parts[parts.len()-1].to_string();
+            scldom.file_name = parts[0..parts.len() - 1].join(".");
+            scldom.file_type = parts[parts.len() - 1].to_string();
         }
 
         // result
         Ok(scldom)
     }
 
-    pub fn new_from_unknown(scldom_id: usize, dom: &Domain, value_init: f64, file_path: String) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_unknown(
+        scldom_id: usize,
+        dom: &Domain,
+        value_init: f64,
+        file_path: String,
+    ) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -114,8 +130,8 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
-            scldom.file_name = parts[0..parts.len()-1].join(".");
-            scldom.file_type = parts[parts.len()-1].to_string();
+            scldom.file_name = parts[0..parts.len() - 1].join(".");
+            scldom.file_type = parts[parts.len() - 1].to_string();
         }
 
         // result
@@ -124,12 +140,12 @@ impl ScalarDomain {
 
     pub fn write(&self, dom: &Domain, ts: usize) -> Result<(), FEChemError> {
         // TODO: update if function type
-        
+
         // write depending on file type
         match self.file_type.as_str() {
             "csv" => write_scldom_csv(&dom, &self, ts)?,
             "vtu" => write_scldom_vtu(&dom, &self, ts)?,
-            "" => (),  // do nothing if file type is empty
+            "" => (), // do nothing if file type is empty
             _ => panic!("Unsupported file type: {}", self.file_type),
         }
 
@@ -148,7 +164,7 @@ impl ScalarDomain {
                 return self.compute_quad_unknown_domain(dom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
-                // get coordinates 
+                // get coordinates
                 let dom = &vars.dom[self.dom_id];
                 let itgdom = &vars.itg_dom[self.dom_id];
                 let x = itgdom.quad_x[eid][qid];
@@ -189,7 +205,9 @@ impl ScalarDomain {
                 }
                 return val;
             }
-            _ => { panic!("Unsupported number of nodes: {}", num_node); }
+            _ => {
+                panic!("Unsupported number of nodes: {}", num_node);
+            }
         }
     }
 
@@ -205,7 +223,9 @@ impl ScalarDomain {
                 }
                 return val;
             }
-            _ => { panic!("Unsupported number of nodes: {}", num_node); }
+            _ => {
+                panic!("Unsupported number of nodes: {}", num_node);
+            }
         }
     }
 
@@ -220,21 +240,22 @@ impl ScalarDomain {
                     self.node_value[nid] = value;
                 }
             }
-            _ => { return; }
+            _ => {
+                return;
+            }
         }
     }
-
 }
 
 // put outside of struct to avoid circular dependency
 pub fn update_function_scldom(vars: &mut Variables, scldom_id: usize, t: f64) {
     // skip if not function type
-    let scldom = &vars.scl_dom[scldom_id];  // immutable borrow
+    let scldom = &vars.scl_dom[scldom_id]; // immutable borrow
     let (func, scldom_ids) = match &scldom.scl_type {
-        ScalarDomainType::Function { func, scldom_ids } => {
-            (func, scldom_ids)
+        ScalarDomainType::Function { func, scldom_ids } => (func, scldom_ids),
+        _ => {
+            return;
         }
-        _ => { return; }
     };
 
     // initialize value vector
@@ -256,7 +277,6 @@ pub fn update_function_scldom(vars: &mut Variables, scldom_id: usize, t: f64) {
     }
 
     // update node values
-    let scldom = &mut vars.scl_dom[scldom_id];  // mutable borrow
+    let scldom = &mut vars.scl_dom[scldom_id]; // mutable borrow
     scldom.node_value = node_value;
-
 }

@@ -9,8 +9,8 @@ pub struct OperatorDirichlet {
     pub bnd_id: usize,
 
     // scalars
-    pub val_id: usize,  // prescribed value
-    pub unk_id: usize,  // unknown scalar
+    pub val_id: usize, // prescribed value
+    pub unk_id: usize, // unknown scalar
 }
 
 impl OperatorDirichlet {
@@ -29,7 +29,14 @@ impl OperatorDirichlet {
 }
 
 impl OperatorBase for OperatorDirichlet {
-    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, _t: f64, factor: f64) {    
+    fn apply(
+        &self,
+        vars: &Variables,
+        a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
+        b_vec: &mut Col<f64>,
+        _t: f64,
+        factor: f64,
+    ) {
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let val = &vars.scl_bnd[self.val_id];
@@ -53,11 +60,17 @@ impl OperatorBase for OperatorDirichlet {
                 let val = val.node_value[nid_bnd];
 
                 // impose dirichlet BC
-                self.add_a(vars, a_triplet, self.unk_id, nid_dom, self.unk_id, nid_dom, 1.0);
-                self.add_b(vars, b_vec, self.unk_id, nid_dom, factor * val);
+                self.add_a_sclscl(
+                    vars,
+                    a_triplet,
+                    self.unk_id,
+                    nid_dom,
+                    self.unk_id,
+                    nid_dom,
+                    1.0,
+                );
+                self.add_b_scl(vars, b_vec, self.unk_id, nid_dom, factor * val);
             }
-
         }
-    
     }
 }

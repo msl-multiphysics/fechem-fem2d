@@ -1,25 +1,24 @@
-use crate::base::geom_bnd::Boundary;
 use crate::base::error::FEChemError;
+use crate::base::geom_bnd::Boundary;
 use crate::shape::prelude::*;
 
 #[derive(Default)]
 pub struct IntegralBoundary {
     // ids
     pub itgbnd_id: usize,
-    pub bnd_id: usize,  // boundary this integral is attached to
+    pub bnd_id: usize, // boundary this integral is attached to
 
     // quadrature point data
     // e - element; q - quadrature point; v - node point
-    pub num_quad: Vec<usize>,  // [e] -> number of quadrature points per element
-    pub quad_x: Vec<Vec<f64>>,  // [e][q] -> x coordinates
-    pub quad_y: Vec<Vec<f64>>,  // [e][q] -> y coordinates
-    pub gradn_x: Vec<Vec<Vec<f64>>>,  // [e][q][v] -> gradient of shape function wrt x
-    pub gradn_y: Vec<Vec<Vec<f64>>>,  // [e][q][v] -> gradient of shape function wrt y
-    pub jac_mat: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> Jacobian matrix
-    pub jac_inv: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> inverse Jacobian matrix
-    pub jac_met: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> metric tensor
+    pub num_quad: Vec<usize>, // [e] -> number of quadrature points per element
+    pub quad_x: Vec<Vec<f64>>, // [e][q] -> x coordinates
+    pub quad_y: Vec<Vec<f64>>, // [e][q] -> y coordinates
+    pub gradn_x: Vec<Vec<Vec<f64>>>, // [e][q][v] -> gradient of shape function wrt x
+    pub gradn_y: Vec<Vec<Vec<f64>>>, // [e][q][v] -> gradient of shape function wrt y
+    pub jac_mat: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> Jacobian matrix
+    pub jac_inv: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> inverse Jacobian matrix
+    pub jac_met: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> metric tensor
     pub jac_det: Vec<Vec<f64>>, // [e][q] -> Jacobian determinant
-
 }
 
 impl IntegralBoundary {
@@ -32,8 +31,12 @@ impl IntegralBoundary {
         // iterate through quadrature points
         for eid in 0..bnd.num_elem {
             match bnd.elem_node_num[eid] {
-                2 => {compute_lin2(&mut itgbnd, bnd, eid);}
-                _ => {return Err(FEChemError::InvalidElementType);}
+                2 => {
+                    compute_lin2(&mut itgbnd, bnd, eid);
+                }
+                _ => {
+                    return Err(FEChemError::InvalidElementType);
+                }
             }
         }
 
@@ -91,10 +94,7 @@ fn compute_lin2(itgbnd: &mut IntegralBoundary, bnd: &Boundary, eid: usize) {
             dxda += dnda[i] * node_x[i];
             dyda += dnda[i] * node_y[i];
         }
-        jac_mat[qid] = [
-            [ dxda, -dyda],
-            [ dyda,  dxda],
-        ];
+        jac_mat[qid] = [[dxda, -dyda], [dyda, dxda]];
 
         // jacobian determinant
         let det = dxda * dxda + dyda * dyda;
@@ -104,10 +104,7 @@ fn compute_lin2(itgbnd: &mut IntegralBoundary, bnd: &Boundary, eid: usize) {
         //   da/dx  da/dy
         //   db/dx  db/dy
         // ]
-        let inv = [
-            [dxda / det, dyda / det],
-            [dyda / det, dxda / det],
-        ];
+        let inv = [[dxda / det, dyda / det], [dyda / det, dxda / det]];
         jac_inv[qid] = inv;
 
         // physical gradients

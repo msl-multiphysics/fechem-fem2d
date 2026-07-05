@@ -10,8 +10,8 @@ pub struct OperatorNeumannDiffusion {
     pub bnd_id: usize,
 
     // scalars
-    pub flx_id: usize,  // flux
-    pub unk_id: usize,  // unknown scalar
+    pub flx_id: usize, // flux
+    pub unk_id: usize, // unknown scalar
 }
 
 impl OperatorNeumannDiffusion {
@@ -30,7 +30,14 @@ impl OperatorNeumannDiffusion {
 }
 
 impl OperatorBase for OperatorNeumannDiffusion {
-    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {    
+    fn apply(
+        &self,
+        vars: &Variables,
+        _a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
+        b_vec: &mut Col<f64>,
+        t: f64,
+        factor: f64,
+    ) {
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let itg = &vars.itg_bnd[self.bnd_id];
@@ -61,7 +68,9 @@ impl OperatorBase for OperatorNeumannDiffusion {
                         }
                     }
                 }
-                _ => {panic!("Invalid element type");}
+                _ => {
+                    panic!("Invalid element type");
+                }
             }
 
             // step 2: assemble global vector
@@ -79,10 +88,8 @@ impl OperatorBase for OperatorNeumannDiffusion {
                 }
 
                 // add to global vector
-                self.add_b(vars, b_vec, self.unk_id, nid_dom, b_loc[v]);
+                self.add_b_scl(vars, b_vec, self.unk_id, nid_dom, b_loc[v]);
             }
-
         }
-    
     }
 }

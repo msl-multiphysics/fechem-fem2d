@@ -10,8 +10,8 @@ pub struct OperatorSource {
     pub dom_id: usize,
 
     // scalars
-    pub src_id: usize,  // source
-    pub unk_id: usize,  // unknown scalar
+    pub src_id: usize, // source
+    pub unk_id: usize, // unknown scalar
 }
 
 impl OperatorSource {
@@ -30,7 +30,14 @@ impl OperatorSource {
 }
 
 impl OperatorBase for OperatorSource {
-    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {    
+    fn apply(
+        &self,
+        vars: &Variables,
+        _a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
+        b_vec: &mut Col<f64>,
+        t: f64,
+        factor: f64,
+    ) {
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -71,7 +78,9 @@ impl OperatorBase for OperatorSource {
                         }
                     }
                 }
-                _ => {panic!("Invalid element type");}
+                _ => {
+                    panic!("Invalid element type");
+                }
             }
 
             // step 2: assemble global vector
@@ -88,10 +97,8 @@ impl OperatorBase for OperatorSource {
                 }
 
                 // add to global vector
-                self.add_b(vars, b_vec, self.unk_id, nid_v, -b_loc[v]);
+                self.add_b_scl(vars, b_vec, self.unk_id, nid_v, -b_loc[v]);
             }
-
         }
-    
     }
 }

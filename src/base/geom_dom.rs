@@ -13,16 +13,15 @@ pub struct Domain {
     pub node_y: Vec<f64>,
 
     // element data
-    pub num_elem: usize,  // number of 2d elements
-    pub elem_node_num: Vec<usize>,  // number of nodes (3 - tri; 4 - quad)
-    pub elem_node_id: Vec<Vec<usize>>,  // node ids of elements
+    pub num_elem: usize,               // number of 2d elements
+    pub elem_node_num: Vec<usize>,     // number of nodes (3 - tri; 4 - quad)
+    pub elem_node_id: Vec<Vec<usize>>, // node ids of elements
 
     // domain-mesh mapping
     pub node_dom_mesh_id: Vec<usize>,
     pub node_mesh_dom_id: HashMap<usize, usize>,
     pub elem_dom_mesh_id: Vec<usize>,
     pub elem_mesh_dom_id: HashMap<usize, usize>,
-
 }
 
 impl Domain {
@@ -40,13 +39,13 @@ impl Domain {
         }
 
         // build list of mesh node ids
-        let mut node_set = HashSet::new();  
+        let mut node_set = HashSet::new();
         for &elem_mid in dom.elem_dom_mesh_id.iter() {
             for &node_mid in &mesh.elm2d_node_id[elem_mid] {
                 node_set.insert(node_mid);
             }
         }
-        
+
         // create domain-mesh node mapping
         dom.node_dom_mesh_id = node_set.into_iter().collect::<Vec<usize>>();
         for (node_did, &node_mid) in dom.node_dom_mesh_id.iter().enumerate() {
@@ -78,6 +77,5 @@ impl Domain {
 
         // result
         Ok(dom)
-
     }
 }

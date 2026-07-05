@@ -1,25 +1,24 @@
-use crate::base::geom_dom::Domain;
 use crate::base::error::FEChemError;
+use crate::base::geom_dom::Domain;
 use crate::shape::prelude::*;
 
 #[derive(Default)]
 pub struct IntegralDomain {
     // ids
-    pub itgdom_id: usize,  // must be the same as the domain id
-    pub dom_id: usize,  // domain this integral is attached to
+    pub itgdom_id: usize, // must be the same as the domain id
+    pub dom_id: usize,    // domain this integral is attached to
 
     // quadrature point data
     // e - element; q - quadrature point; v - node point
-    pub num_quad: Vec<usize>,  // [e] -> number of quadrature points per element
-    pub quad_x: Vec<Vec<f64>>,  // [e][q] -> x coordinates
-    pub quad_y: Vec<Vec<f64>>,  // [e][q] -> y coordinates
-    pub gradn_x: Vec<Vec<Vec<f64>>>,  // [e][q][v] -> gradient of shape function wrt x
-    pub gradn_y: Vec<Vec<Vec<f64>>>,  // [e][q][v] -> gradient of shape function wrt y
-    pub jac_mat: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> Jacobian matrix
-    pub jac_inv: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> inverse Jacobian matrix
-    pub jac_met: Vec<Vec<[[f64; 2]; 2]>>,  // [e][q][i][j] -> metric tensor
+    pub num_quad: Vec<usize>, // [e] -> number of quadrature points per element
+    pub quad_x: Vec<Vec<f64>>, // [e][q] -> x coordinates
+    pub quad_y: Vec<Vec<f64>>, // [e][q] -> y coordinates
+    pub gradn_x: Vec<Vec<Vec<f64>>>, // [e][q][v] -> gradient of shape function wrt x
+    pub gradn_y: Vec<Vec<Vec<f64>>>, // [e][q][v] -> gradient of shape function wrt y
+    pub jac_mat: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> Jacobian matrix
+    pub jac_inv: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> inverse Jacobian matrix
+    pub jac_met: Vec<Vec<[[f64; 2]; 2]>>, // [e][q][i][j] -> metric tensor
     pub jac_det: Vec<Vec<f64>>, // [e][q] -> Jacobian determinant
-
 }
 
 impl IntegralDomain {
@@ -32,16 +31,21 @@ impl IntegralDomain {
         // iterate through quadrature points
         for eid in 0..dom.num_elem {
             match dom.elem_node_num[eid] {
-                3 => {compute_tri3(&mut itgdom, dom, eid);}
-                4 => {compute_quad4(&mut itgdom, dom, eid);}
-                _ => {return Err(FEChemError::InvalidElementType);}
+                3 => {
+                    compute_tri3(&mut itgdom, dom, eid);
+                }
+                4 => {
+                    compute_quad4(&mut itgdom, dom, eid);
+                }
+                _ => {
+                    return Err(FEChemError::InvalidElementType);
+                }
             }
         }
 
         // result
         Ok(itgdom)
     }
-
 }
 
 fn compute_tri3(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
@@ -101,10 +105,7 @@ fn compute_tri3(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
             dyda += dnda[i] * node_y[i];
             dydb += dndb[i] * node_y[i];
         }
-        jac_mat[qid] = [
-            [dxda, dxdb],
-            [dyda, dydb],
-        ];
+        jac_mat[qid] = [[dxda, dxdb], [dyda, dydb]];
 
         // jacobian determinant
         let det = dxda * dydb - dxdb * dyda;
@@ -114,10 +115,7 @@ fn compute_tri3(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
         //   da/dx  da/dy
         //   db/dx  db/dy
         // ]
-        let inv = [
-            [ dydb / det, -dxdb / det],
-            [-dyda / det,  dxda / det],
-        ];
+        let inv = [[dydb / det, -dxdb / det], [-dyda / det, dxda / det]];
 
         jac_inv[qid] = inv;
 
@@ -142,7 +140,6 @@ fn compute_tri3(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
             }
         }
         jac_met[qid] = g;
-
     }
 
     // store element data
@@ -214,10 +211,7 @@ fn compute_quad4(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
             dyda += dnda[i] * node_y[i];
             dydb += dndb[i] * node_y[i];
         }
-        jac_mat[qid] = [
-            [dxda, dxdb],
-            [dyda, dydb],
-        ];
+        jac_mat[qid] = [[dxda, dxdb], [dyda, dydb]];
 
         // jacobian determinant
         let det = dxda * dydb - dxdb * dyda;
@@ -227,10 +221,7 @@ fn compute_quad4(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
         //   da/dx  da/dy
         //   db/dx  db/dy
         // ]
-        let inv = [
-            [ dydb / det, -dxdb / det],
-            [-dyda / det,  dxda / det],
-        ];
+        let inv = [[dydb / det, -dxdb / det], [-dyda / det, dxda / det]];
 
         jac_inv[qid] = inv;
 
@@ -255,7 +246,6 @@ fn compute_quad4(itgdom: &mut IntegralDomain, dom: &Domain, eid: usize) {
             }
         }
         jac_met[qid] = g;
-
     }
 
     // store element data

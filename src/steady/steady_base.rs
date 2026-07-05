@@ -7,12 +7,24 @@ use std::time::{Duration, Instant};
 
 // base trait for steady-state solvers.
 pub trait SteadyBase {
-
     // to be implemented in specific solver
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize);  // must set mat_size
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize);  // must reset a_mat and b_vec
+    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize); // must set mat_size
+    fn assemble_matrix(
+        &self,
+        vars: &Variables,
+        a_mat: &mut SparseColMat<usize, f64>,
+        b_vec: &mut Col<f64>,
+        mat_size: usize,
+    ); // must reset a_mat and b_vec
 
-    fn solve(&mut self, vars: &mut Variables, solver: Box<dyn SolverBase>, max_iter: usize, tol: f64, damp: f64) -> Result<(), FEChemError> {
+    fn solve(
+        &mut self,
+        vars: &mut Variables,
+        solver: Box<dyn SolverBase>,
+        max_iter: usize,
+        tol: f64,
+        damp: f64,
+    ) -> Result<(), FEChemError> {
         let time_start = Instant::now();
         println!("Starting steady-state solver.");
 
@@ -37,7 +49,8 @@ pub trait SteadyBase {
         self.assemble_operator(vars, &mut mat_size);
 
         // initialize solver vectors
-        let mut a_mat: SparseColMat<usize, f64> = SparseColMat::try_new_from_triplets(0, 0, &[]).expect("Failed to create empty sparse matrix.");
+        let mut a_mat: SparseColMat<usize, f64> = SparseColMat::try_new_from_triplets(0, 0, &[])
+            .expect("Failed to create empty sparse matrix.");
         let mut b_vec: Col<f64> = Col::zeros(mat_size);
         let mut x_udmp_vec: Col<f64>;
         let mut x_iter_vec: Col<f64> = Col::zeros(mat_size);
@@ -54,7 +67,6 @@ pub trait SteadyBase {
         // iterate to convergence
         let mut iter = 0;
         while iter < max_iter {
-
             let time_i0 = Instant::now();
 
             // solve A_k x_undamped = b_k for x_undamped
@@ -89,7 +101,10 @@ pub trait SteadyBase {
 
         // error if not converged
         if iter == max_iter {
-            return Err(FEChemError::FailedConvergence {caller: "SteadyBase::solve".to_string(), max_iter});
+            return Err(FEChemError::FailedConvergence {
+                caller: "SteadyBase::solve".to_string(),
+                max_iter,
+            });
         }
 
         let time_2 = Instant::now();
@@ -110,5 +125,4 @@ pub trait SteadyBase {
 
         Ok(())
     }
-
 }

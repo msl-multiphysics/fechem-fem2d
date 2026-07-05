@@ -1,7 +1,7 @@
 use crate::base::error::FEChemError;
 use crate::solver::solver_base::SolverBase;
-use faer::{Col, Mat, Par};
 use faer::sparse::SparseColMat;
+use faer::{Col, Mat, Par};
 use faer_gmres::gmres;
 use std::num::NonZeroUsize;
 
@@ -9,7 +9,13 @@ use std::num::NonZeroUsize;
 pub struct SolverGmres {}
 
 impl SolverBase for SolverGmres {
-    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, x_init: &Col<f64>, mat_size: usize) -> Result<Col<f64>, FEChemError> {
+    fn solve(
+        &self,
+        a_mat: &SparseColMat<usize, f64>,
+        b_vec: &Col<f64>,
+        x_init: &Col<f64>,
+        mat_size: usize,
+    ) -> Result<Col<f64>, FEChemError> {
         let mut b_mat = Mat::<f64>::zeros(b_vec.nrows(), 1);
         let mut x_mat = Mat::<f64>::zeros(x_init.nrows(), 1);
         for i in 0..b_vec.nrows() {
@@ -54,7 +60,9 @@ impl SolverGmres {
         }
 
         // set number of threads
-        faer::set_global_parallelism(Par::Rayon(NonZeroUsize::new(num_thread).expect("Number of threads must be positive"),));
+        faer::set_global_parallelism(Par::Rayon(
+            NonZeroUsize::new(num_thread).expect("Number of threads must be positive"),
+        ));
 
         // return
         Ok(SolverGmres::default())

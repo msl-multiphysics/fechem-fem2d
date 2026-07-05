@@ -1,4 +1,5 @@
 use crate::base::scl_dom::ScalarDomainType;
+use crate::base::scl_itf::ScalarInterfaceType;
 use crate::base::vars::Variables;
 use crate::operator::prelude::*;
 use crate::steady::steady_base::SteadyBase;
@@ -9,21 +10,26 @@ use std::collections::HashMap;
 #[derive(Default)]
 pub struct SteadyHeat {
     // internal data
-    pub itr_dom: Vec<usize>,  // dom id
-    pub itr_temp: HashMap<usize, usize>,  // temperature (unknown)
-    pub itr_cond: HashMap<usize, usize>,  // thermal conductivity
-    pub itr_hsrc: HashMap<usize, usize>,  // heat source
+    pub itr_dom: Vec<usize>,             // dom id
+    pub itr_temp: HashMap<usize, usize>, // temperature (unknown)
+    pub itr_cond: HashMap<usize, usize>, // thermal conductivity
+    pub itr_hsrc: HashMap<usize, usize>, // heat source
 
     // boundary data
-    pub temp_bnd: Vec<usize>,  // bnd with temperature BC
-    pub temp_temp: HashMap<usize, usize>,  // temperature
-    pub hflx_bnd: Vec<usize>,  // bnd with heat flux BC
-    pub hflx_hflx: HashMap<usize, usize>,  // heat flux
+    pub temp_bnd: Vec<usize>,             // bnd with temperature BC
+    pub temp_temp: HashMap<usize, usize>, // temperature
+    pub hflx_bnd: Vec<usize>,             // bnd with heat flux BC
+    pub hflx_hflx: HashMap<usize, usize>, // heat flux
+
+    // interface data
+    pub cont_itf: Vec<usize>,            // itf with continuity BC
+    pub cont_lmd: HashMap<usize, usize>, // continuity
 
     // operators
     pub oper_itr: Vec<(OperatorDiffusion, OperatorSource)>,
     pub oper_bnd_temp: Vec<OperatorDirichlet>,
     pub oper_bnd_hflx: Vec<OperatorNeumannDiffusion>,
+    pub oper_cont_itf: Vec<OperatorContinuity>,
 }
 
 impl SteadyHeat {
@@ -47,7 +53,11 @@ impl SteadyHeat {
         self.hflx_bnd.push(bnd_id);
         self.hflx_hflx.insert(bnd_id, hflx_id);
     }
-    
+
+    pub fn add_cont_itf(&mut self, itf_id: usize, lmd_id: usize) {
+        self.cont_itf.push(itf_id);
+        self.cont_lmd.insert(itf_id, lmd_id);
+    }
 }
 
 impl SteadyBase for SteadyHeat {
@@ -61,10 +71,15 @@ impl SteadyBase for SteadyHeat {
             vars.scl_dom[temp_id].scl_type = ScalarDomainType::Unknown { start: xid };
             xid += num_node;
         }
+        for (&itf_id, &lmd_id) in &self.cont_lmd {
+            let num_node = vars.itf[itf_id].num_node;
+            vars.scl_itf[lmd_id].scl_type = ScalarInterfaceType::Unknown { start: xid };
+            xid += num_node;
+        }
 
         // set matrix size to last unknown index
         *mat_size = xid;
-        
+
         // step 2: flag dirichlet boundaries
 
         // iterate over temperature boundaries
@@ -76,6 +91,23 @@ impl SteadyBase for SteadyHeat {
             // flag dirichlet boundaries
             for &nid in &vars.bnd[bnd_id].node_bnd_dom_id {
                 vars.scl_dom[dom_temp_id].node_dir[nid] = true;
+            }
+        }
+
+        // flag interface multiplier nodes whose paired domain nodes are both
+        // prescribed, so continuity does not overconstrain crosspoints.
+        for &itf_id in &self.cont_itf {
+            let dom1_id = vars.itf[itf_id].dom1_id;
+            let dom2_id = vars.itf[itf_id].dom2_id;
+            let dom_temp1_id = self.itr_temp[&dom1_id];
+            let dom_temp2_id = self.itr_temp[&dom2_id];
+            let lmd_id = self.cont_lmd[&itf_id];
+
+            for nid in 0..vars.itf[itf_id].num_node {
+                let nid1 = vars.itf[itf_id].node_itf_dom1_id[nid];
+                let nid2 = vars.itf[itf_id].node_itf_dom2_id[nid];
+                vars.scl_itf[lmd_id].node_dir[nid] = vars.scl_dom[dom_temp1_id].node_dir[nid1]
+                    && vars.scl_dom[dom_temp2_id].node_dir[nid2];
             }
         }
 
@@ -109,13 +141,29 @@ impl SteadyBase for SteadyHeat {
             self.oper_bnd_hflx.push(oper_neu);
         }
 
+        // interface continuity operator
+        for &itf_id in &self.cont_itf {
+            let dom1_id = vars.itf[itf_id].dom1_id;
+            let dom2_id = vars.itf[itf_id].dom2_id;
+            let dom_temp1_id = self.itr_temp[&dom1_id];
+            let dom_temp2_id = self.itr_temp[&dom2_id];
+            let lmd_id = self.cont_lmd[&itf_id];
+            let oper_cont = OperatorContinuity::new(itf_id, lmd_id, dom_temp1_id, dom_temp2_id);
+            self.oper_cont_itf.push(oper_cont);
+        }
     }
 
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize) {
+    fn assemble_matrix(
+        &self,
+        vars: &Variables,
+        a_mat: &mut SparseColMat<usize, f64>,
+        b_vec: &mut Col<f64>,
+        mat_size: usize,
+    ) {
         // initialize triplet for matrix assembly
         let mut a_triplet: Vec<Triplet<usize, usize, f64>> = Vec::new();
         *b_vec = Col::zeros(mat_size);
-        
+
         // assemble internal data
         for (oper_cond, oper_src) in &self.oper_itr {
             oper_cond.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
@@ -130,9 +178,13 @@ impl SteadyBase for SteadyHeat {
             oper_neu.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
         }
 
+        // assemble interface data
+        for oper_cont in &self.oper_cont_itf {
+            oper_cont.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+        }
+
         // create sparse matrix from triplet
-        *a_mat = SparseColMat::try_new_from_triplets(mat_size, mat_size, &a_triplet).expect("Failed to create sparse matrix from triplets.");
-
+        *a_mat = SparseColMat::try_new_from_triplets(mat_size, mat_size, &a_triplet)
+            .expect("Failed to create sparse matrix from triplets.");
     }
-
 }

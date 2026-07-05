@@ -38,8 +38,11 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     }
 
     writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
-    writeln!(file, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
+    )
+    .expect("Unable to write VTU file");
     writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
     writeln!(
         file,
@@ -55,15 +58,22 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     )
     .expect("Unable to write VTU file");
     for nid in 0..dom.num_node {
-        writeln!(file, "          {} {} 0.0", dom.node_x[nid], dom.node_y[nid])
-            .expect("Unable to write VTU file");
+        writeln!(
+            file,
+            "          {} {} 0.0",
+            dom.node_x[nid], dom.node_y[nid]
+        )
+        .expect("Unable to write VTU file");
     }
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
     writeln!(file, "      </Points>").expect("Unable to write VTU file");
 
     writeln!(file, "      <Cells>").expect("Unable to write VTU file");
-    writeln!(file, "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for node_id in &connectivity {
         write!(file, "{} ", node_id).expect("Unable to write VTU file");
@@ -71,8 +81,11 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
 
-    writeln!(file, "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for off in &offsets {
         write!(file, "{} ", off).expect("Unable to write VTU file");
@@ -80,8 +93,11 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
 
-    writeln!(file, "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for cell_type in &cell_types {
         write!(file, "{} ", cell_type).expect("Unable to write VTU file");
@@ -91,8 +107,11 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     writeln!(file, "      </Cells>").expect("Unable to write VTU file");
 
     writeln!(file, "      <PointData Scalars=\"value\">").expect("Unable to write VTU file");
-    writeln!(file, "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for value in &scldom.node_value {
         write!(file, "{} ", value).expect("Unable to write VTU file");
@@ -108,7 +127,11 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     Ok(())
 }
 
-pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> Result<(), FEChemError> {
+pub fn write_sclbnd_vtu(
+    bnd: &Boundary,
+    sclbnd: &ScalarBoundary,
+    ts: usize,
+) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", sclbnd.file_name, ts);
     let mut file = match File::create(&file_path) {
         Ok(f) => f,
@@ -139,8 +162,11 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     }
 
     writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
-    writeln!(file, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
+    )
+    .expect("Unable to write VTU file");
     writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
     writeln!(
         file,
@@ -156,15 +182,22 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     )
     .expect("Unable to write VTU file");
     for nid in 0..bnd.num_node {
-        writeln!(file, "          {} {} 0.0", bnd.node_x[nid], bnd.node_y[nid])
-            .expect("Unable to write VTU file");
+        writeln!(
+            file,
+            "          {} {} 0.0",
+            bnd.node_x[nid], bnd.node_y[nid]
+        )
+        .expect("Unable to write VTU file");
     }
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
     writeln!(file, "      </Points>").expect("Unable to write VTU file");
 
     writeln!(file, "      <Cells>").expect("Unable to write VTU file");
-    writeln!(file, "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for node_id in &connectivity {
         write!(file, "{} ", node_id).expect("Unable to write VTU file");
@@ -172,8 +205,11 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
 
-    writeln!(file, "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for off in &offsets {
         write!(file, "{} ", off).expect("Unable to write VTU file");
@@ -181,8 +217,11 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
 
-    writeln!(file, "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for cell_type in &cell_types {
         write!(file, "{} ", cell_type).expect("Unable to write VTU file");
@@ -192,8 +231,11 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     writeln!(file, "      </Cells>").expect("Unable to write VTU file");
 
     writeln!(file, "      <PointData Scalars=\"value\">").expect("Unable to write VTU file");
-    writeln!(file, "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">")
-        .expect("Unable to write VTU file");
+    writeln!(
+        file,
+        "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">"
+    )
+    .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for value in &sclbnd.node_value {
         write!(file, "{} ", value).expect("Unable to write VTU file");

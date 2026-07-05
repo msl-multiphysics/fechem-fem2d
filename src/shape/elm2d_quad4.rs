@@ -1,8 +1,18 @@
 // quad4 constants
 pub const M_FRAC_1_SQRT3: f64 = 0.5773502691896257; // 1/sqrt(3)
 pub const W_QUAD4: [f64; 4] = [1.0, 1.0, 1.0, 1.0];
-pub const A_QUAD4: [f64; 4] = [-M_FRAC_1_SQRT3, -M_FRAC_1_SQRT3, M_FRAC_1_SQRT3, M_FRAC_1_SQRT3];
-pub const B_QUAD4: [f64; 4] = [-M_FRAC_1_SQRT3, M_FRAC_1_SQRT3, -M_FRAC_1_SQRT3, M_FRAC_1_SQRT3];
+pub const A_QUAD4: [f64; 4] = [
+    -M_FRAC_1_SQRT3,
+    -M_FRAC_1_SQRT3,
+    M_FRAC_1_SQRT3,
+    M_FRAC_1_SQRT3,
+];
+pub const B_QUAD4: [f64; 4] = [
+    -M_FRAC_1_SQRT3,
+    M_FRAC_1_SQRT3,
+    -M_FRAC_1_SQRT3,
+    M_FRAC_1_SQRT3,
+];
 
 // quad4 shape function
 pub fn quad4_eval(a: f64, b: f64) -> [f64; 4] {

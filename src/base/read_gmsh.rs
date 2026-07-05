@@ -136,19 +136,18 @@ struct ParsedGmsh {
 }
 
 fn parse_from_sections_v4(raw: &RawGmshSections<'_>) -> Result<ParsedGmsh, FEChemError> {
-    let entities = raw.entities.as_ref().ok_or_else(|| FEChemError::InvalidGmsh {
-        caller: CALLER.to_string(),
-        message: "MSH4 file missing $Entities section (required for physical groups)".to_string(),
-    })?;
+    let entities = raw
+        .entities
+        .as_ref()
+        .ok_or_else(|| FEChemError::InvalidGmsh {
+            caller: CALLER.to_string(),
+            message: "MSH4 file missing $Entities section (required for physical groups)"
+                .to_string(),
+        })?;
 
     let (curve_phys, surface_phys) = parse_entities_v4(entities)?;
     let (vert_x, vert_y, tag_to_vid) = parse_nodes_v4(&raw.nodes)?;
-    let (cells, lines) = parse_elements_v4(
-        &raw.elements,
-        &tag_to_vid,
-        &curve_phys,
-        &surface_phys,
-    )?;
+    let (cells, lines) = parse_elements_v4(&raw.elements, &tag_to_vid, &curve_phys, &surface_phys)?;
 
     if cells.is_empty() {
         return Err(FEChemError::InvalidGmsh {
@@ -166,27 +165,35 @@ fn parse_from_sections_v4(raw: &RawGmshSections<'_>) -> Result<ParsedGmsh, FEChe
 }
 
 /// `$Entities`: map curve / surface Gmsh entity tags to a representative physical tag (minimum tag if several).
-fn parse_entities_v4(block: &[&str]) -> Result<(HashMap<i32, i32>, HashMap<i32, i32>), FEChemError> {
+fn parse_entities_v4(
+    block: &[&str],
+) -> Result<(HashMap<i32, i32>, HashMap<i32, i32>), FEChemError> {
     if block.is_empty() {
         return Ok((HashMap::new(), HashMap::new()));
     }
 
     let mut it = block[0].split_whitespace();
-    let n_points: usize = it
-        .next()
-        .and_then(|s| s.parse().ok())
-        .ok_or_else(|| FEChemError::InvalidGmsh {
-            caller: CALLER.to_string(),
-            message: format!("$Entities: invalid header {:?}", block.get(0)),
-        })?;
-    let n_curves: usize = it.next().and_then(|s| s.parse().ok()).ok_or_else(|| FEChemError::InvalidGmsh {
-        caller: CALLER.to_string(),
-        message: "$Entities: missing curve count".to_string(),
-    })?;
-    let n_surfaces: usize = it.next().and_then(|s| s.parse().ok()).ok_or_else(|| FEChemError::InvalidGmsh {
-        caller: CALLER.to_string(),
-        message: "$Entities: missing surface count".to_string(),
-    })?;
+    let n_points: usize =
+        it.next()
+            .and_then(|s| s.parse().ok())
+            .ok_or_else(|| FEChemError::InvalidGmsh {
+                caller: CALLER.to_string(),
+                message: format!("$Entities: invalid header {:?}", block.get(0)),
+            })?;
+    let n_curves: usize =
+        it.next()
+            .and_then(|s| s.parse().ok())
+            .ok_or_else(|| FEChemError::InvalidGmsh {
+                caller: CALLER.to_string(),
+                message: "$Entities: missing curve count".to_string(),
+            })?;
+    let n_surfaces: usize =
+        it.next()
+            .and_then(|s| s.parse().ok())
+            .ok_or_else(|| FEChemError::InvalidGmsh {
+                caller: CALLER.to_string(),
+                message: "$Entities: missing surface count".to_string(),
+            })?;
     let n_volumes: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
     let mut line_idx = 1usize;
@@ -202,10 +209,12 @@ fn parse_entities_v4(block: &[&str]) -> Result<(HashMap<i32, i32>, HashMap<i32, 
 
     let mut curve_phys = HashMap::new();
     for _ in 0..n_curves {
-        let line = block.get(line_idx).ok_or_else(|| FEChemError::InvalidGmsh {
-            caller: CALLER.to_string(),
-            message: "$Entities: truncated curve block".to_string(),
-        })?;
+        let line = block
+            .get(line_idx)
+            .ok_or_else(|| FEChemError::InvalidGmsh {
+                caller: CALLER.to_string(),
+                message: "$Entities: truncated curve block".to_string(),
+            })?;
         let (tag, phys) = parse_entity_line_phys_tag(line)?;
         curve_phys.insert(tag, phys);
         line_idx += 1;
@@ -213,10 +222,12 @@ fn parse_entities_v4(block: &[&str]) -> Result<(HashMap<i32, i32>, HashMap<i32, 
 
     let mut surface_phys = HashMap::new();
     for _ in 0..n_surfaces {
-        let line = block.get(line_idx).ok_or_else(|| FEChemError::InvalidGmsh {
-            caller: CALLER.to_string(),
-            message: "$Entities: truncated surface block".to_string(),
-        })?;
+        let line = block
+            .get(line_idx)
+            .ok_or_else(|| FEChemError::InvalidGmsh {
+                caller: CALLER.to_string(),
+                message: "$Entities: truncated surface block".to_string(),
+            })?;
         let (tag, phys) = parse_entity_line_phys_tag(line)?;
         surface_phys.insert(tag, phys);
         line_idx += 1;
@@ -273,17 +284,15 @@ fn parse_entity_line_phys_tag(line: &str) -> Result<(i32, i32), FEChemError> {
             pmin = pmin.min(p);
             idx += 1;
         }
-        if pmin == i32::MAX {
-            0
-        } else {
-            pmin
-        }
+        if pmin == i32::MAX { 0 } else { pmin }
     };
 
     Ok((tag, phys))
 }
 
-fn parse_nodes_v4(block: &[&str]) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, usize>), FEChemError> {
+fn parse_nodes_v4(
+    block: &[&str],
+) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, usize>), FEChemError> {
     if block.is_empty() {
         return Err(FEChemError::InvalidGmsh {
             caller: CALLER.to_string(),
@@ -346,10 +355,13 @@ fn parse_nodes_v4(block: &[&str]) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, us
                 caller: CALLER.to_string(),
                 message: "$Nodes MSH4: EOF reading node tags".to_string(),
             })?;
-            let node_tag: i32 = tag_line.trim().parse().map_err(|_| FEChemError::InvalidGmsh {
-                caller: CALLER.to_string(),
-                message: format!("$Nodes MSH4: bad node tag line {tag_line}"),
-            })?;
+            let node_tag: i32 = tag_line
+                .trim()
+                .parse()
+                .map_err(|_| FEChemError::InvalidGmsh {
+                    caller: CALLER.to_string(),
+                    message: format!("$Nodes MSH4: bad node tag line {tag_line}"),
+                })?;
             tags.push(node_tag);
             idx += 1;
         }
@@ -361,14 +373,20 @@ fn parse_nodes_v4(block: &[&str]) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, us
             })?;
             idx += 1;
             let mut c = coord_line.split_whitespace();
-            let x: f64 = c.next().and_then(|s| s.parse().ok()).ok_or_else(|| FEChemError::InvalidGmsh {
-                caller: CALLER.to_string(),
-                message: format!("$Nodes MSH4: bad x in {coord_line}"),
-            })?;
-            let y: f64 = c.next().and_then(|s| s.parse().ok()).ok_or_else(|| FEChemError::InvalidGmsh {
-                caller: CALLER.to_string(),
-                message: format!("$Nodes MSH4: bad y in {coord_line}"),
-            })?;
+            let x: f64 =
+                c.next()
+                    .and_then(|s| s.parse().ok())
+                    .ok_or_else(|| FEChemError::InvalidGmsh {
+                        caller: CALLER.to_string(),
+                        message: format!("$Nodes MSH4: bad x in {coord_line}"),
+                    })?;
+            let y: f64 =
+                c.next()
+                    .and_then(|s| s.parse().ok())
+                    .ok_or_else(|| FEChemError::InvalidGmsh {
+                        caller: CALLER.to_string(),
+                        message: format!("$Nodes MSH4: bad y in {coord_line}"),
+                    })?;
             tag_to_xy.insert(node_tag, (x, y));
         }
     }
@@ -384,7 +402,8 @@ fn parse_nodes_v4(block: &[&str]) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, us
         });
     }
 
-    let mut pairs: Vec<(i32, f64, f64)> = tag_to_xy.into_iter().map(|(t, (x, y))| (t, x, y)).collect();
+    let mut pairs: Vec<(i32, f64, f64)> =
+        tag_to_xy.into_iter().map(|(t, (x, y))| (t, x, y)).collect();
     pairs.sort_by_key(|p| p.0);
 
     let mut tag_to_vid = HashMap::new();
@@ -497,7 +516,10 @@ fn parse_elements_v4(
             })?;
             idx += 1;
 
-            let nums: Vec<i32> = line.split_whitespace().filter_map(|s| s.parse().ok()).collect();
+            let nums: Vec<i32> = line
+                .split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
             if nums.len() < 1 + nn {
                 return Err(FEChemError::InvalidGmsh {
                     caller: CALLER.to_string(),
@@ -510,14 +532,18 @@ fn parse_elements_v4(
                 (1, 1) => {
                     let t0 = nums[node_start];
                     let t1 = nums[node_start + 1];
-                    let v0 = *tag_to_vid.get(&t0).ok_or_else(|| FEChemError::InvalidGmsh {
-                        caller: CALLER.to_string(),
-                        message: format!("line element references unknown node tag {t0}"),
-                    })?;
-                    let v1 = *tag_to_vid.get(&t1).ok_or_else(|| FEChemError::InvalidGmsh {
-                        caller: CALLER.to_string(),
-                        message: format!("line element references unknown node tag {t1}"),
-                    })?;
+                    let v0 = *tag_to_vid
+                        .get(&t0)
+                        .ok_or_else(|| FEChemError::InvalidGmsh {
+                            caller: CALLER.to_string(),
+                            message: format!("line element references unknown node tag {t0}"),
+                        })?;
+                    let v1 = *tag_to_vid
+                        .get(&t1)
+                        .ok_or_else(|| FEChemError::InvalidGmsh {
+                            caller: CALLER.to_string(),
+                            message: format!("line element references unknown node tag {t1}"),
+                        })?;
                     let phys = curve_phys.get(&entity_tag).copied().unwrap_or(0);
                     lines.push((v0, v1, phys));
                 }
@@ -590,7 +616,12 @@ fn order_cell_ccw(v: &mut Vec<usize>, vx: &[f64], vy: &[f64]) {
 
 /// Map raw physical tags to consecutive region indices `0..n-1`.
 fn consecutive_phys_remap(tags: &[i32]) -> HashMap<i32, usize> {
-    let mut uniq: Vec<i32> = tags.iter().copied().collect::<HashSet<_>>().into_iter().collect();
+    let mut uniq: Vec<i32> = tags
+        .iter()
+        .copied()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
     uniq.sort();
     uniq.iter().enumerate().map(|(i, &t)| (t, i)).collect()
 }

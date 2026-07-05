@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 pub struct Boundary {
     // ids
     pub bnd_id: usize,
-    pub dom_id: usize,  // domain this boundary is attached to
+    pub dom_id: usize, // domain this boundary is attached to
 
     // node data
     pub num_node: usize,
@@ -15,9 +15,9 @@ pub struct Boundary {
     pub node_y: Vec<f64>,
 
     // element data
-    pub num_elem: usize,  // number of 2d elements
-    pub elem_node_num: Vec<usize>,  // type of elements (2 - lin)
-    pub elem_node_id: Vec<Vec<usize>>,  // node ids of elements
+    pub num_elem: usize,               // number of 1d elements
+    pub elem_node_num: Vec<usize>,     // type of elements (2 - lin)
+    pub elem_node_id: Vec<Vec<usize>>, // node ids of elements
 
     // boundary-mesh mapping
     pub node_bnd_mesh_id: Vec<usize>,
@@ -28,12 +28,16 @@ pub struct Boundary {
     // boundary-domain mapping
     pub node_bnd_dom_id: Vec<usize>,
     pub node_dom_bnd_id: HashMap<usize, usize>,
-    pub elem_bnd_dom_id: Vec<usize>,  // parent domain element for each boundary element
-
+    pub elem_bnd_dom_id: Vec<usize>, // parent domain element for each boundary element
 }
 
 impl Boundary {
-    pub fn new(bnd_id: usize, mesh: &Mesh, dom: &Domain, reg_id: usize) -> Result<Boundary, FEChemError> {
+    pub fn new(
+        bnd_id: usize,
+        mesh: &Mesh,
+        dom: &Domain,
+        reg_id: usize,
+    ) -> Result<Boundary, FEChemError> {
         // initialize boundary
         let mut bnd = Boundary::default();
         bnd.bnd_id = bnd_id;
@@ -48,13 +52,13 @@ impl Boundary {
         }
 
         // build list of global node ids
-        let mut node_set = HashSet::new();  
+        let mut node_set = HashSet::new();
         for &elem_mid in bnd.elem_bnd_mesh_id.iter() {
             for &node_mid in &mesh.elm1d_node_id[elem_mid] {
                 node_set.insert(node_mid);
             }
         }
-        
+
         // create global-local node mapping
         bnd.node_bnd_mesh_id = node_set.into_iter().collect::<Vec<usize>>();
         for (node_bid, &node_mid) in bnd.node_bnd_mesh_id.iter().enumerate() {
@@ -82,10 +86,8 @@ impl Boundary {
             let (dom_eid, dom_n0, dom_n1) = find_domain_edge(dom, d0, d1)?;
             let m0 = dom.node_dom_mesh_id[dom_n0];
             let m1 = dom.node_dom_mesh_id[dom_n1];
-            bnd.elem_node_id.push(vec![
-                bnd.node_mesh_bnd_id[&m0],
-                bnd.node_mesh_bnd_id[&m1],
-            ]);
+            bnd.elem_node_id
+                .push(vec![bnd.node_mesh_bnd_id[&m0], bnd.node_mesh_bnd_id[&m1]]);
             bnd.elem_bnd_dom_id.push(dom_eid);
         }
         bnd.num_elem = bnd.elem_bnd_mesh_id.len();
@@ -101,7 +103,6 @@ impl Boundary {
 
         // result
         Ok(bnd)
-
     }
 }
 
@@ -122,5 +123,8 @@ fn find_domain_edge(
             }
         }
     }
-    Err(FEChemError::BoundaryEdgeNotFound { node0: d0, node1: d1 })
+    Err(FEChemError::BoundaryEdgeNotFound {
+        node0: d0,
+        node1: d1,
+    })
 }
