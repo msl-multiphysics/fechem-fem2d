@@ -32,12 +32,7 @@ pub struct Boundary {
 }
 
 impl Boundary {
-    pub fn new(
-        bnd_id: usize,
-        mesh: &Mesh,
-        dom: &Domain,
-        reg_id: usize,
-    ) -> Result<Boundary, FEChemError> {
+    pub fn new(bnd_id: usize, mesh: &Mesh, dom: &Domain, reg_id: usize) -> Result<Boundary, FEChemError> {
         // initialize boundary
         let mut bnd = Boundary::default();
         bnd.bnd_id = bnd_id;
@@ -86,8 +81,7 @@ impl Boundary {
             let (dom_eid, dom_n0, dom_n1) = find_domain_edge(dom, d0, d1)?;
             let m0 = dom.node_dom_mesh_id[dom_n0];
             let m1 = dom.node_dom_mesh_id[dom_n1];
-            bnd.elem_node_id
-                .push(vec![bnd.node_mesh_bnd_id[&m0], bnd.node_mesh_bnd_id[&m1]]);
+            bnd.elem_node_id.push(vec![bnd.node_mesh_bnd_id[&m0], bnd.node_mesh_bnd_id[&m1]]);
             bnd.elem_bnd_dom_id.push(dom_eid);
         }
         bnd.num_elem = bnd.elem_bnd_mesh_id.len();
@@ -108,11 +102,7 @@ impl Boundary {
 
 /// Find a domain element edge matching `d0` and `d1`.
 /// Returns the parent element id and node ids in CCW edge order.
-fn find_domain_edge(
-    dom: &Domain,
-    d0: usize,
-    d1: usize,
-) -> Result<(usize, usize, usize), FEChemError> {
+fn find_domain_edge(dom: &Domain, d0: usize, d1: usize) -> Result<(usize, usize, usize), FEChemError> {
     for (eid, elem) in dom.elem_node_id.iter().enumerate() {
         let n = elem.len();
         for i in 0..n {

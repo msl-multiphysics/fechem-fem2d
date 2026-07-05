@@ -16,7 +16,7 @@ pub struct OperatorNeumannDiffusion {
 
 impl OperatorNeumannDiffusion {
     pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OperatorNeumannDiffusion {
-        // applies flux to the unknown scalar
+        // applies flx * norm = unk (outward normal) to the unknown scalar
 
         // create struct
         let mut oper_diff = OperatorNeumannDiffusion::default();
@@ -30,14 +30,7 @@ impl OperatorNeumannDiffusion {
 }
 
 impl OperatorBase for OperatorNeumannDiffusion {
-    fn apply(
-        &self,
-        vars: &Variables,
-        _a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
-        b_vec: &mut Col<f64>,
-        t: f64,
-        factor: f64,
-    ) {
+    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let itg = &vars.itg_bnd[self.bnd_id];

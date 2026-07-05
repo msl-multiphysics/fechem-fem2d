@@ -35,6 +35,7 @@ pub struct ScalarDomain {
     // values
     pub scl_type: ScalarDomainType,
     pub node_value: Vec<f64>, // [nid] -> values at nodes
+    pub node_prev: Vec<f64>,  // [nid] -> values at previous time step
     pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
 
     // output file
@@ -43,12 +44,7 @@ pub struct ScalarDomain {
 }
 
 impl ScalarDomain {
-    pub fn new_from_constant(
-        scldom_id: usize,
-        dom: &Domain,
-        value_const: f64,
-        file_path: String,
-    ) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_constant(scldom_id: usize, dom: &Domain, value_const: f64, file_path: String) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -57,6 +53,7 @@ impl ScalarDomain {
         // set values
         scldom.scl_type = ScalarDomainType::Constant { value: value_const };
         scldom.node_value = vec![value_const; dom.num_node];
+        scldom.node_prev = vec![value_const; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
 
         // set outputs if file path is not empty
@@ -73,13 +70,7 @@ impl ScalarDomain {
         Ok(scldom)
     }
 
-    pub fn new_from_function(
-        scldom_id: usize,
-        dom: &Domain,
-        value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
-        scldom_ids: Vec<usize>,
-        file_path: String,
-    ) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_function(scldom_id: usize, dom: &Domain, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -92,6 +83,7 @@ impl ScalarDomain {
             scldom_ids: scldom_ids,
         };
         scldom.node_value = vec![0.0; dom.num_node];
+        scldom.node_prev = vec![0.0; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
 
         // set outputs if file path is not empty
@@ -108,12 +100,7 @@ impl ScalarDomain {
         Ok(scldom)
     }
 
-    pub fn new_from_unknown(
-        scldom_id: usize,
-        dom: &Domain,
-        value_init: f64,
-        file_path: String,
-    ) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_unknown(scldom_id: usize, dom: &Domain, value_init: f64, file_path: String) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -122,6 +109,7 @@ impl ScalarDomain {
         // set values
         scldom.scl_type = ScalarDomainType::Unknown { start: 0 };
         scldom.node_value = vec![value_init; dom.num_node];
+        scldom.node_prev = vec![value_init; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
 
         // set outputs if file path is not empty
@@ -239,6 +227,17 @@ impl ScalarDomain {
                     let value = x_vec[xid];
                     self.node_value[nid] = value;
                 }
+            }
+            _ => {
+                return;
+            }
+        }
+    }
+
+    pub fn update_prev(&mut self) {
+        match self.scl_type {
+            ScalarDomainType::Unknown { .. } => {
+                self.node_prev.copy_from_slice(&self.node_value);
             }
             _ => {
                 return;

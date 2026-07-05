@@ -28,14 +28,7 @@ impl Mesh {
         read_gmsh_mesh(&file_path)
     }
 
-    pub fn new_from_bounds(
-        x_min: f64,
-        y_min: f64,
-        x_max: f64,
-        y_max: f64,
-        num_elm_x: usize,
-        num_elm_y: usize,
-    ) -> Result<Mesh, FEChemError> {
+    pub fn new_from_bounds(x_min: f64, y_min: f64, x_max: f64, y_max: f64, num_elm_x: usize, num_elm_y: usize) -> Result<Mesh, FEChemError> {
         // initialize Mesh
         let mut dom = Mesh::default();
 
@@ -104,10 +97,8 @@ impl Mesh {
         dom.num_reg1d = 4;
         dom.reg1d_elem_id.push((0..num_elm_y).collect());
         dom.reg1d_elem_id.push((num_elm_y..2 * num_elm_y).collect());
-        dom.reg1d_elem_id
-            .push((2 * num_elm_y..2 * num_elm_y + num_elm_x).collect());
-        dom.reg1d_elem_id
-            .push((2 * num_elm_y + num_elm_x..2 * num_elm_y + 2 * num_elm_x).collect());
+        dom.reg1d_elem_id.push((2 * num_elm_y..2 * num_elm_y + num_elm_x).collect());
+        dom.reg1d_elem_id.push((2 * num_elm_y + num_elm_x..2 * num_elm_y + 2 * num_elm_x).collect());
 
         // result
         Ok(dom)

@@ -10,13 +10,7 @@ use std::num::NonZeroUsize;
 pub struct SolverQr {}
 
 impl SolverBase for SolverQr {
-    fn solve(
-        &self,
-        a_mat: &SparseColMat<usize, f64>,
-        b_vec: &Col<f64>,
-        _: &Col<f64>,
-        _: usize,
-    ) -> Result<Col<f64>, FEChemError> {
+    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, _: &Col<f64>, _: usize) -> Result<Col<f64>, FEChemError> {
         let symbolic =
             SymbolicQr::try_new(a_mat.symbolic()).map_err(|_| FEChemError::FailedMatrixSolve {
                 caller: "SolverQr::solve".to_string(),
@@ -41,9 +35,7 @@ impl SolverQr {
         }
 
         // set number of threads
-        faer::set_global_parallelism(Par::Rayon(
-            NonZeroUsize::new(num_thread).expect("Number of threads must be positive"),
-        ));
+        faer::set_global_parallelism(Par::Rayon(NonZeroUsize::new(num_thread).expect("Number of threads must be positive")));
 
         Ok(SolverQr::default())
     }

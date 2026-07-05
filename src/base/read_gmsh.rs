@@ -165,9 +165,7 @@ fn parse_from_sections_v4(raw: &RawGmshSections<'_>) -> Result<ParsedGmsh, FEChe
 }
 
 /// `$Entities`: map curve / surface Gmsh entity tags to a representative physical tag (minimum tag if several).
-fn parse_entities_v4(
-    block: &[&str],
-) -> Result<(HashMap<i32, i32>, HashMap<i32, i32>), FEChemError> {
+fn parse_entities_v4(block: &[&str]) -> Result<(HashMap<i32, i32>, HashMap<i32, i32>), FEChemError> {
     if block.is_empty() {
         return Ok((HashMap::new(), HashMap::new()));
     }
@@ -290,9 +288,7 @@ fn parse_entity_line_phys_tag(line: &str) -> Result<(i32, i32), FEChemError> {
     Ok((tag, phys))
 }
 
-fn parse_nodes_v4(
-    block: &[&str],
-) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, usize>), FEChemError> {
+fn parse_nodes_v4(block: &[&str]) -> Result<(Vec<f64>, Vec<f64>, HashMap<i32, usize>), FEChemError> {
     if block.is_empty() {
         return Err(FEChemError::InvalidGmsh {
             caller: CALLER.to_string(),
@@ -433,12 +429,7 @@ fn msh4_element_line_node_count(elm_type: usize) -> Result<usize, FEChemError> {
     }
 }
 
-fn parse_elements_v4(
-    block: &[&str],
-    tag_to_vid: &HashMap<i32, usize>,
-    curve_phys: &HashMap<i32, i32>,
-    surface_phys: &HashMap<i32, i32>,
-) -> Result<(Vec<(Vec<usize>, i32)>, Vec<(usize, usize, i32)>), FEChemError> {
+fn parse_elements_v4(block: &[&str], tag_to_vid: &HashMap<i32, usize>, curve_phys: &HashMap<i32, i32>, surface_phys: &HashMap<i32, i32>) -> Result<(Vec<(Vec<usize>, i32)>, Vec<(usize, usize, i32)>), FEChemError> {
     if block.is_empty() {
         return Err(FEChemError::InvalidGmsh {
             caller: CALLER.to_string(),

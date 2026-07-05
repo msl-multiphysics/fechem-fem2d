@@ -37,14 +37,7 @@ impl Variables {
         Ok(vars)
     }
 
-    pub fn new_from_bounds(
-        x_min: f64,
-        y_min: f64,
-        x_max: f64,
-        y_max: f64,
-        num_elem_x: usize,
-        num_elem_y: usize,
-    ) -> Result<Variables, FEChemError> {
+    pub fn new_from_bounds(x_min: f64, y_min: f64, x_max: f64, y_max: f64, num_elem_x: usize, num_elem_y: usize) -> Result<Variables, FEChemError> {
         let mut vars = Variables::default();
         vars.mesh = Mesh::new_from_bounds(x_min, y_min, x_max, y_max, num_elem_x, num_elem_y)?;
         Ok(vars)
@@ -70,119 +63,56 @@ impl Variables {
         Ok(bnd_id)
     }
 
-    pub fn add_itf(
-        &mut self,
-        dom1_id: usize,
-        dom2_id: usize,
-        reg_id: usize,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_itf(&mut self, dom1_id: usize, dom2_id: usize, reg_id: usize) -> Result<usize, FEChemError> {
         let itf_id = self.itf.len();
         let itgitf_id = self.itg_itf.len();
-        let itf = Interface::new(
-            itf_id,
-            &self.mesh,
-            &self.dom[dom1_id],
-            &self.dom[dom2_id],
-            reg_id,
-        )?;
+        let itf = Interface::new(itf_id, &self.mesh, &self.dom[dom1_id], &self.dom[dom2_id], reg_id)?;
         let itgitf = IntegralInterface::new(itgitf_id, &itf)?;
         self.itf.push(itf);
         self.itg_itf.push(itgitf);
         Ok(itf_id)
     }
 
-    pub fn add_scldom_con(
-        &mut self,
-        dom_id: usize,
-        value_const: f64,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_scldom_con(&mut self, dom_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
         let scldom_id = self.scl_dom.len();
-        let scldom =
-            ScalarDomain::new_from_constant(scldom_id, &self.dom[dom_id], value_const, file_path)?;
+        let scldom = ScalarDomain::new_from_constant(scldom_id, &self.dom[dom_id], value_const, file_path)?;
         self.scl_dom.push(scldom);
         Ok(scldom_id)
     }
 
-    pub fn add_scldom_fun(
-        &mut self,
-        dom_id: usize,
-        value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
-        scldom_ids: Vec<usize>,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_scldom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
         // TODO: check that scldom_ids are unknown-type scalars
         let scldom_id = self.scl_dom.len();
-        let scldom = ScalarDomain::new_from_function(
-            scldom_id,
-            &self.dom[dom_id],
-            value_func,
-            scldom_ids,
-            file_path,
-        )?;
+        let scldom = ScalarDomain::new_from_function(scldom_id, &self.dom[dom_id], value_func, scldom_ids, file_path)?;
         self.scl_dom.push(scldom);
         Ok(scldom_id)
     }
 
-    pub fn add_scldom_unk(
-        &mut self,
-        dom_id: usize,
-        value_init: f64,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_scldom_unk(&mut self, dom_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
         let scldom_id = self.scl_dom.len();
-        let scldom =
-            ScalarDomain::new_from_unknown(scldom_id, &self.dom[dom_id], value_init, file_path)?;
+        let scldom = ScalarDomain::new_from_unknown(scldom_id, &self.dom[dom_id], value_init, file_path)?;
         self.scl_dom.push(scldom);
         Ok(scldom_id)
     }
 
-    pub fn add_sclbnd_con(
-        &mut self,
-        bnd_id: usize,
-        value_const: f64,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_sclbnd_con(&mut self, bnd_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
         let sclbnd_id = self.scl_bnd.len();
-        let sclbnd = ScalarBoundary::new_from_constant(
-            sclbnd_id,
-            &self.bnd[bnd_id],
-            value_const,
-            file_path,
-        )?;
+        let sclbnd = ScalarBoundary::new_from_constant(sclbnd_id, &self.bnd[bnd_id], value_const, file_path)?;
         self.scl_bnd.push(sclbnd);
         Ok(sclbnd_id)
     }
 
-    pub fn add_sclbnd_fun(
-        &mut self,
-        bnd_id: usize,
-        value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
-        scldom_ids: Vec<usize>,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_sclbnd_fun(&mut self, bnd_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
         // TODO: check that scldom_ids are unknown-type scalars
         let sclbnd_id = self.scl_bnd.len();
-        let sclbnd = ScalarBoundary::new_from_function(
-            sclbnd_id,
-            &self.bnd[bnd_id],
-            value_func,
-            scldom_ids,
-            file_path,
-        )?;
+        let sclbnd = ScalarBoundary::new_from_function(sclbnd_id, &self.bnd[bnd_id], value_func, scldom_ids, file_path)?;
         self.scl_bnd.push(sclbnd);
         Ok(sclbnd_id)
     }
 
-    pub fn add_sclitf_unk(
-        &mut self,
-        itf_id: usize,
-        value_init: f64,
-        file_path: String,
-    ) -> Result<usize, FEChemError> {
+    pub fn add_sclitf_unk(&mut self, itf_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
         let sclitf_id = self.scl_itf.len();
-        let sclitf =
-            ScalarInterface::new_from_unknown(sclitf_id, &self.itf[itf_id], value_init, file_path)?;
+        let sclitf = ScalarInterface::new_from_unknown(sclitf_id, &self.itf[itf_id], value_init, file_path)?;
         self.scl_itf.push(sclitf);
         Ok(sclitf_id)
     }
@@ -194,16 +124,33 @@ impl Variables {
             let dom = &self.dom[scldom.dom_id];
             scldom.update_unknown(dom, x_vec);
         }
+        for sclitf in self.scl_itf.iter_mut() {
+            let itf = &self.itf[sclitf.itf_id];
+            sclitf.update_unknown(itf, x_vec);
+        }
     }
 
-    pub fn write_scalar(&mut self, t: f64, ts: usize) -> Result<(), FEChemError> {
-        // iterate over writers
+    pub fn update_function(&mut self, t: f64) {
         for scldom_id in 0..self.scl_dom.len() {
             update_function_scldom(self, scldom_id, t);
         }
         for sclbnd_id in 0..self.scl_bnd.len() {
             update_function_sclbnd(self, sclbnd_id, t);
         }
+    }
+
+    pub fn update_prev(&mut self) {
+        for scldom in self.scl_dom.iter_mut() {
+            scldom.update_prev();
+        }
+        for sclitf in self.scl_itf.iter_mut() {
+            sclitf.update_prev();
+        }
+    }
+
+    pub fn write_scalar(&mut self, t: f64, ts: usize) -> Result<(), FEChemError> {
+        // compute function values at nodes
+        self.update_function(t);
 
         // iterate over writers
         for scldom in self.scl_dom.iter_mut() {

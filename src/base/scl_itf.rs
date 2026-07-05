@@ -1,5 +1,6 @@
 use crate::base::error::FEChemError;
 use crate::base::geom_itf::Interface;
+use faer::Col;
 
 pub enum ScalarInterfaceType {
     Constant { value: f64 },
@@ -21,6 +22,7 @@ pub struct ScalarInterface {
     // values
     pub scl_type: ScalarInterfaceType,
     pub node_value: Vec<f64>, // [nid] -> values at nodes
+    pub node_prev: Vec<f64>,  // [nid] -> values at previous time step
     pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
 
     // output file
@@ -29,12 +31,7 @@ pub struct ScalarInterface {
 }
 
 impl ScalarInterface {
-    pub fn new_from_constant(
-        sclitf_id: usize,
-        itf: &Interface,
-        value_const: f64,
-        file_path: String,
-    ) -> Result<ScalarInterface, FEChemError> {
+    pub fn new_from_constant(sclitf_id: usize, itf: &Interface, value_const: f64, file_path: String) -> Result<ScalarInterface, FEChemError> {
         // create struct
         let mut sclitf = ScalarInterface::default();
         sclitf.sclitf_id = sclitf_id;
@@ -43,6 +40,7 @@ impl ScalarInterface {
         // set values
         sclitf.scl_type = ScalarInterfaceType::Constant { value: value_const };
         sclitf.node_value = vec![value_const; itf.num_node];
+        sclitf.node_prev = vec![value_const; itf.num_node];
         sclitf.node_dir = vec![false; itf.num_node];
 
         // set outputs if file path is not empty
@@ -61,12 +59,7 @@ impl ScalarInterface {
 
     // TODO: implement new_from_function
 
-    pub fn new_from_unknown(
-        sclitf_id: usize,
-        itf: &Interface,
-        value_init: f64,
-        file_path: String,
-    ) -> Result<ScalarInterface, FEChemError> {
+    pub fn new_from_unknown(sclitf_id: usize, itf: &Interface, value_init: f64, file_path: String) -> Result<ScalarInterface, FEChemError> {
         // create struct
         let mut sclitf = ScalarInterface::default();
         sclitf.sclitf_id = sclitf_id;
@@ -75,6 +68,7 @@ impl ScalarInterface {
         // set values
         sclitf.scl_type = ScalarInterfaceType::Unknown { start: 0 };
         sclitf.node_value = vec![value_init; itf.num_node];
+        sclitf.node_prev = vec![value_init; itf.num_node];
         sclitf.node_dir = vec![false; itf.num_node];
 
         // set outputs if file path is not empty
@@ -92,4 +86,29 @@ impl ScalarInterface {
     }
 
     // TODO: implement write
+
+    pub fn update_unknown(&mut self, itf: &Interface, x_vec: &Col<f64>) {
+        match self.scl_type {
+            ScalarInterfaceType::Unknown { start } => {
+                for nid in 0..itf.num_node {
+                    let xid = start + nid;
+                    self.node_value[nid] = x_vec[xid];
+                }
+            }
+            _ => {
+                return;
+            }
+        }
+    }
+
+    pub fn update_prev(&mut self) {
+        match self.scl_type {
+            ScalarInterfaceType::Unknown { .. } => {
+                self.node_prev.copy_from_slice(&self.node_value);
+            }
+            _ => {
+                return;
+            }
+        }
+    }
 }

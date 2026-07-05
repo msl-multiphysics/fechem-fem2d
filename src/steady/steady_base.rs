@@ -1,30 +1,20 @@
 use crate::base::error::FEChemError;
+use crate::base::scl_dom::ScalarDomainType;
+use crate::base::scl_itf::ScalarInterfaceType;
 use crate::base::vars::Variables;
 use crate::solver::solver_base::SolverBase;
 use faer::Col;
 use faer::sparse::SparseColMat;
 use std::time::{Duration, Instant};
 
+
 // base trait for steady-state solvers.
 pub trait SteadyBase {
     // to be implemented in specific solver
     fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize); // must set mat_size
-    fn assemble_matrix(
-        &self,
-        vars: &Variables,
-        a_mat: &mut SparseColMat<usize, f64>,
-        b_vec: &mut Col<f64>,
-        mat_size: usize,
-    ); // must reset a_mat and b_vec
+    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize); // must reset a_mat and b_vec
 
-    fn solve(
-        &mut self,
-        vars: &mut Variables,
-        solver: Box<dyn SolverBase>,
-        max_iter: usize,
-        tol: f64,
-        damp: f64,
-    ) -> Result<(), FEChemError> {
+    fn solve(&mut self, vars: &mut Variables, solver: Box<dyn SolverBase>, max_iter: usize, tol: f64, damp: f64) -> Result<(), FEChemError> {
         let time_start = Instant::now();
         println!("Starting steady-state solver.");
 
@@ -57,8 +47,25 @@ pub trait SteadyBase {
 
         let time_0 = Instant::now();
 
-        // initial assembly of A_1 and b_1
-        vars.update_unknown(&x_iter_vec);
+        // load initial unknown values into iteration vector
+        for scldom in &vars.scl_dom {
+            if let ScalarDomainType::Unknown { start } = scldom.scl_type {
+                let dom = &vars.dom[scldom.dom_id];
+                for nid in 0..dom.num_node {
+                    x_iter_vec[start + nid] = scldom.node_value[nid];
+                }
+            }
+        }
+        for sclitf in &vars.scl_itf {
+            if let ScalarInterfaceType::Unknown { start } = sclitf.scl_type {
+                let itf = &vars.itf[sclitf.itf_id];
+                for nid in 0..itf.num_node {
+                    x_iter_vec[start + nid] = sclitf.node_value[nid];
+                }
+            }
+        }
+
+        // initial assembly of A and b
         self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size);
 
         let time_1 = Instant::now();

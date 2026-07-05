@@ -37,12 +37,7 @@ pub struct ScalarBoundary {
 }
 
 impl ScalarBoundary {
-    pub fn new_from_constant(
-        sclbnd_id: usize,
-        bnd: &Boundary,
-        value_const: f64,
-        file_path: String,
-    ) -> Result<ScalarBoundary, FEChemError> {
+    pub fn new_from_constant(sclbnd_id: usize, bnd: &Boundary, value_const: f64, file_path: String) -> Result<ScalarBoundary, FEChemError> {
         // create struct
         let mut sclbnd = ScalarBoundary::default();
         sclbnd.sclbnd_id = sclbnd_id;
@@ -67,13 +62,7 @@ impl ScalarBoundary {
         Ok(sclbnd)
     }
 
-    pub fn new_from_function(
-        sclbnd_id: usize,
-        bnd: &Boundary,
-        value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
-        scldom_ids: Vec<usize>,
-        file_path: String,
-    ) -> Result<ScalarBoundary, FEChemError> {
+    pub fn new_from_function(sclbnd_id: usize, bnd: &Boundary, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarBoundary, FEChemError> {
         // create struct
         let mut sclbnd = ScalarBoundary::default();
         sclbnd.sclbnd_id = sclbnd_id;

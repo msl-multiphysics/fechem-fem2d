@@ -16,7 +16,8 @@ pub struct OperatorSource {
 
 impl OperatorSource {
     pub fn new(dom_id: usize, src_id: usize, unk_id: usize) -> OperatorSource {
-        // applies -src to the unknown scalar
+        // adds +src to RHS
+        // LHS is 0 for steady state or d(unk)/dt for transient
 
         // create struct
         let mut oper_src = OperatorSource::default();
@@ -30,14 +31,7 @@ impl OperatorSource {
 }
 
 impl OperatorBase for OperatorSource {
-    fn apply(
-        &self,
-        vars: &Variables,
-        _a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
-        b_vec: &mut Col<f64>,
-        t: f64,
-        factor: f64,
-    ) {
+    fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];

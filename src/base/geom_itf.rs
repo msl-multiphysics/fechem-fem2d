@@ -38,13 +38,7 @@ pub struct Interface {
 }
 
 impl Interface {
-    pub fn new(
-        itf_id: usize,
-        mesh: &Mesh,
-        dom1: &Domain,
-        dom2: &Domain,
-        reg_id: usize,
-    ) -> Result<Interface, FEChemError> {
+    pub fn new(itf_id: usize, mesh: &Mesh, dom1: &Domain, dom2: &Domain, reg_id: usize) -> Result<Interface, FEChemError> {
         // initialize interface
         let mut itf = Interface::default();
         itf.itf_id = itf_id;
@@ -94,20 +88,14 @@ impl Interface {
             let (dom1_eid, dom1_n0, dom1_n1) = find_domain_edge(dom1, d1_0, d1_1)?;
             let m1_0 = dom1.node_dom_mesh_id[dom1_n0];
             let m1_1 = dom1.node_dom_mesh_id[dom1_n1];
-            itf.elem_node1_id.push(vec![
-                itf.node_mesh_itf_id[&m1_0],
-                itf.node_mesh_itf_id[&m1_1],
-            ]);
+            itf.elem_node1_id.push(vec![itf.node_mesh_itf_id[&m1_0], itf.node_mesh_itf_id[&m1_1]]);
 
             let d2_0 = dom2.node_mesh_dom_id[&mesh_nid[0]];
             let d2_1 = dom2.node_mesh_dom_id[&mesh_nid[1]];
             let (dom2_eid, dom2_n0, dom2_n1) = find_domain_edge(dom2, d2_0, d2_1)?;
             let m2_0 = dom2.node_dom_mesh_id[dom2_n0];
             let m2_1 = dom2.node_dom_mesh_id[dom2_n1];
-            itf.elem_node2_id.push(vec![
-                itf.node_mesh_itf_id[&m2_0],
-                itf.node_mesh_itf_id[&m2_1],
-            ]);
+            itf.elem_node2_id.push(vec![itf.node_mesh_itf_id[&m2_0], itf.node_mesh_itf_id[&m2_1]]);
 
             itf.elem_itf_dom1_id.push(dom1_eid);
             itf.elem_itf_dom2_id.push(dom2_eid);
@@ -134,11 +122,7 @@ impl Interface {
 
 /// Find a domain element edge matching `d0` and `d1`.
 /// Returns the parent element id and node ids in CCW edge order.
-fn find_domain_edge(
-    dom: &Domain,
-    d0: usize,
-    d1: usize,
-) -> Result<(usize, usize, usize), FEChemError> {
+fn find_domain_edge(dom: &Domain, d0: usize, d1: usize) -> Result<(usize, usize, usize), FEChemError> {
     for (eid, elem) in dom.elem_node_id.iter().enumerate() {
         let n = elem.len();
         for i in 0..n {

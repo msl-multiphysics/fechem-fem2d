@@ -17,7 +17,8 @@ pub struct OperatorDiffusion {
 
 impl OperatorDiffusion {
     pub fn new(dom_id: usize, diff_id: usize, unk_id: usize, drv_id: usize) -> OperatorDiffusion {
-        // applies -diff * lapl(drv) to the unknown scalar
+        // adds -diff * lapl(drv) to RHS
+        // LHS is 0 for steady state or d(unk)/dt for transient
 
         // create struct
         let mut oper_diff = OperatorDiffusion::default();
@@ -32,14 +33,7 @@ impl OperatorDiffusion {
 }
 
 impl OperatorBase for OperatorDiffusion {
-    fn apply(
-        &self,
-        vars: &Variables,
-        a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
-        _b_vec: &mut Col<f64>,
-        t: f64,
-        factor: f64,
-    ) {
+    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -109,15 +103,7 @@ impl OperatorBase for OperatorDiffusion {
                     }
 
                     // add to global matrix
-                    self.add_a_sclscl(
-                        vars,
-                        a_triplet,
-                        self.unk_id,
-                        nid_v,
-                        self.drv_id,
-                        nid_j,
-                        a_loc[v][j],
-                    );
+                    self.add_a_sclscl(vars, a_triplet, self.unk_id, nid_v, self.drv_id, nid_j, a_loc[v][j]);
                 }
             }
         }

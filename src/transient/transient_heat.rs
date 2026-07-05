@@ -2,13 +2,13 @@ use crate::base::scl_dom::ScalarDomainType;
 use crate::base::scl_itf::ScalarInterfaceType;
 use crate::base::vars::Variables;
 use crate::operator::prelude::*;
-use crate::steady::steady_base::SteadyBase;
+use crate::transient::transient_base::TransientBase;
 use faer::Col;
 use faer::sparse::{SparseColMat, Triplet};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
-pub struct SteadyHeat {
+pub struct TransientHeat {
     // internal data
     pub itr_dom: Vec<usize>,             // dom id
     pub itr_temp: HashMap<usize, usize>, // temperature (unknown)
@@ -26,15 +26,15 @@ pub struct SteadyHeat {
     pub cont_lmd: HashMap<usize, usize>, // continuity
 
     // operators
-    pub oper_itr: Vec<(OperatorDiffusion, OperatorSource)>,
+    pub oper_itr: Vec<(OperatorTime, OperatorDiffusion, OperatorSource)>,
     pub oper_bnd_temp: Vec<OperatorDirichlet>,
     pub oper_bnd_hflx: Vec<OperatorNeumannDiffusion>,
     pub oper_cont_itf: Vec<OperatorContinuity>,
 }
 
-impl SteadyHeat {
-    pub fn new() -> SteadyHeat {
-        SteadyHeat::default()
+impl TransientHeat {
+    pub fn new() -> TransientHeat {
+        TransientHeat::default()
     }
 
     pub fn add_heat_dom(&mut self, dom_id: usize, temp_id: usize, cond_id: usize, hsrc_id: usize) {
@@ -60,7 +60,7 @@ impl SteadyHeat {
     }
 }
 
-impl SteadyBase for SteadyHeat {
+impl TransientBase for TransientHeat {
     fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize) {
         // step 1: compute matrix size
 
@@ -125,9 +125,10 @@ impl SteadyBase for SteadyHeat {
             let temp_id = self.itr_temp[&dom_id];
             let cond_id = self.itr_cond[&dom_id];
             let hsrc_id = self.itr_hsrc[&dom_id];
+            let oper_time = OperatorTime::new(dom_id, temp_id); 
             let oper_cond = OperatorDiffusion::new(dom_id, cond_id, temp_id, temp_id);
             let oper_src = OperatorSource::new(dom_id, hsrc_id, temp_id);
-            self.oper_itr.push((oper_cond, oper_src));
+            self.oper_itr.push((oper_time, oper_cond, oper_src));
         }
 
         // boundary temperature operator
@@ -160,28 +161,29 @@ impl SteadyBase for SteadyHeat {
         }
     }
 
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize) {
+    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {
         // initialize triplet for matrix assembly
         let mut a_triplet: Vec<Triplet<usize, usize, f64>> = Vec::new();
         *b_vec = Col::zeros(mat_size);
 
         // assemble internal data
-        for (oper_cond, oper_src) in &self.oper_itr {
-            oper_cond.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
-            oper_src.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+        for (oper_time, oper_cond, oper_src) in &self.oper_itr {
+            oper_time.apply(vars, &mut a_triplet, b_vec, t, dt);
+            oper_cond.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_src.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
 
         // assemble boundary data
         for oper_dir in &self.oper_bnd_temp {
-            oper_dir.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
         for oper_neu in &self.oper_bnd_hflx {
-            oper_neu.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_neu.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
 
         // assemble interface data
         for oper_cont in &self.oper_cont_itf {
-            oper_cont.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_cont.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
 
         // create sparse matrix from triplet
