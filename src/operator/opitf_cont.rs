@@ -17,8 +17,6 @@ pub struct OperatorContinuity {
 
 impl OperatorContinuity {
     pub fn new(itf_id: usize, lmd_id: usize, unk1_id: usize, unk2_id: usize) -> OperatorContinuity {
-        // imposes continuity between two unknown scalars
-
         // create struct
         let mut oper_cont = OperatorContinuity::default();
         oper_cont.itf_id = itf_id;
@@ -32,27 +30,12 @@ impl OperatorContinuity {
 }
 
 impl OperatorBase for OperatorContinuity {
-    fn apply(
-        &self,
-        vars: &Variables,
-        a_triplet: &mut Vec<Triplet<usize, usize, f64>>,
-        _b_vec: &mut Col<f64>,
-        _t: f64,
-        factor: f64,
-    ) {
+    fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, factor: f64) {
         // get objects
         let itf = &vars.itf[self.itf_id];
         let itg = &vars.itg_itf[self.itf_id];
         let unk1 = &vars.scl_dom[self.unk1_id];
         let unk2 = &vars.scl_dom[self.unk2_id];
-        let lmd = &vars.scl_itf[self.lmd_id];
-
-        let lmd_active: Vec<bool> = (0..itf.num_node).map(|nid| !lmd.node_dir[nid]).collect();
-        for (nid, &active) in lmd_active.iter().enumerate() {
-            if !active {
-                self.add_a_itfitf(vars, a_triplet, self.lmd_id, nid, self.lmd_id, nid, 1.0);
-            }
-        }
 
         // iterate over elements
         for eid in 0..itf.num_elem {
@@ -99,50 +82,21 @@ impl OperatorBase for OperatorContinuity {
                     let nid2_j = itf.node_itf_dom2_id[node_id[j]];
 
                     // impose continuity constraint
-                    if lmd_active[nid_lmd_v] {
-                        self.add_a_itfscl(
-                            vars,
-                            a_triplet,
-                            self.lmd_id,
-                            nid_lmd_v,
-                            self.unk1_id,
-                            nid1_j,
-                            a_loc[v][j],
-                        );
-                        self.add_a_itfscl(
-                            vars,
-                            a_triplet,
-                            self.lmd_id,
-                            nid_lmd_v,
-                            self.unk2_id,
-                            nid2_j,
-                            -a_loc[v][j],
-                        );
+                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk1_id, nid1_j, a_loc[v][j]);
+                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk2_id, nid2_j, -a_loc[v][j]);
+
+                    // Add transpose terms. A single Dirichlet side stays fixed,
+                    // but if both copied interface nodes are Dirichlet, the
+                    // multiplier balances the two prescribed values.
+                    let add_unk1_lmd = !unk1.node_dir[nid1_v] || unk2.node_dir[nid2_v];
+                    let add_unk2_lmd = !unk2.node_dir[nid2_v] || unk1.node_dir[nid1_v];
+                    if add_unk1_lmd {
+                        self.add_a_sclitf(vars, a_triplet, self.unk1_id, nid1_v, self.lmd_id, nid_lmd_j, a_loc[v][j]);
+                    }
+                    if add_unk2_lmd {
+                        self.add_a_sclitf(vars, a_triplet, self.unk2_id, nid2_v, self.lmd_id, nid_lmd_j, -a_loc[v][j]);
                     }
 
-                    // add transpose terms
-                    if lmd_active[nid_lmd_j] && !unk1.node_dir[nid1_v] {
-                        self.add_a_sclitf(
-                            vars,
-                            a_triplet,
-                            self.unk1_id,
-                            nid1_v,
-                            self.lmd_id,
-                            nid_lmd_j,
-                            a_loc[v][j],
-                        );
-                    }
-                    if lmd_active[nid_lmd_j] && !unk2.node_dir[nid2_v] {
-                        self.add_a_sclitf(
-                            vars,
-                            a_triplet,
-                            self.unk2_id,
-                            nid2_v,
-                            self.lmd_id,
-                            nid_lmd_j,
-                            -a_loc[v][j],
-                        );
-                    }
                 }
             }
         }

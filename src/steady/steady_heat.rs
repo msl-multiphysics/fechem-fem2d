@@ -5,7 +5,7 @@ use crate::operator::prelude::*;
 use crate::steady::steady_base::SteadyBase;
 use faer::Col;
 use faer::sparse::{SparseColMat, Triplet};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct SteadyHeat {
@@ -82,32 +82,39 @@ impl SteadyBase for SteadyHeat {
 
         // step 2: flag dirichlet boundaries
 
+        // list of mesh node ids with dirichlet boundaries
+        let mut dir_nid: HashSet<usize> = HashSet::new();
+
         // iterate over temperature boundaries
         for &bnd_id in &self.temp_bnd {
-            // get domain and temperature ids
-            let dom_id = vars.bnd[bnd_id].dom_id;
-            let dom_temp_id = self.itr_temp[&dom_id];
-
-            // flag dirichlet boundaries
-            for &nid in &vars.bnd[bnd_id].node_bnd_dom_id {
-                vars.scl_dom[dom_temp_id].node_dir[nid] = true;
+            for &mesh_nid in &vars.bnd[bnd_id].node_bnd_mesh_id {
+                dir_nid.insert(mesh_nid);
             }
         }
 
-        // flag interface multiplier nodes whose paired domain nodes are both
-        // prescribed, so continuity does not overconstrain crosspoints.
-        for &itf_id in &self.cont_itf {
-            let dom1_id = vars.itf[itf_id].dom1_id;
-            let dom2_id = vars.itf[itf_id].dom2_id;
-            let dom_temp1_id = self.itr_temp[&dom1_id];
-            let dom_temp2_id = self.itr_temp[&dom2_id];
-            let lmd_id = self.cont_lmd[&itf_id];
-
-            for nid in 0..vars.itf[itf_id].num_node {
-                let nid1 = vars.itf[itf_id].node_itf_dom1_id[nid];
-                let nid2 = vars.itf[itf_id].node_itf_dom2_id[nid];
-                vars.scl_itf[lmd_id].node_dir[nid] = vars.scl_dom[dom_temp1_id].node_dir[nid1]
-                    && vars.scl_dom[dom_temp2_id].node_dir[nid2];
+        // iterate over scalars and flag dirichlet boundaries
+        for (&dom_id, &temp_id) in &self.itr_temp {
+            let dom = &vars.dom[dom_id];
+            let temp = &mut vars.scl_dom[temp_id];
+            for dom_nid in 0..dom.num_node {
+                let mesh_nid = dom.node_dom_mesh_id[dom_nid];
+                temp.node_dir[dom_nid] = dir_nid.contains(&mesh_nid);
+            }
+        }
+        for (&bnd_id, &hflx_id) in &self.hflx_hflx {
+            let bnd = &vars.bnd[bnd_id];
+            let hflx = &mut vars.scl_bnd[hflx_id];
+            for bnd_nid in 0..bnd.num_node {
+                let mesh_nid = bnd.node_bnd_mesh_id[bnd_nid];
+                hflx.node_dir[bnd_nid] = dir_nid.contains(&mesh_nid);
+            }
+        }
+        for (&itf_id, &lmd_id) in &self.cont_lmd {
+            let itf = &vars.itf[itf_id];
+            let lmd = &mut vars.scl_itf[lmd_id];
+            for itf_nid in 0..itf.num_node {
+                let mesh_nid = itf.node_itf_mesh_id[itf_nid];
+                lmd.node_dir[itf_nid] = dir_nid.contains(&mesh_nid);
             }
         }
 
