@@ -82,6 +82,7 @@ impl Variables {
 
     pub fn add_scldom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
         // TODO: check that scldom_ids are unknown-type scalars
+        // function works only on unknown scalars
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_function(scldom_id, &self.dom[dom_id], value_func, scldom_ids, file_path)?;
         self.scl_dom.push(scldom);

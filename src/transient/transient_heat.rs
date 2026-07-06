@@ -12,6 +12,7 @@ pub struct TransientHeat {
     // internal data
     pub itr_dom: Vec<usize>,             // dom id
     pub itr_temp: HashMap<usize, usize>, // temperature (unknown)
+    pub itr_vlcp: HashMap<usize, usize>, // volumetric heat capacity
     pub itr_cond: HashMap<usize, usize>, // thermal conductivity
     pub itr_hsrc: HashMap<usize, usize>, // heat source
 
@@ -37,9 +38,10 @@ impl TransientHeat {
         TransientHeat::default()
     }
 
-    pub fn add_heat_dom(&mut self, dom_id: usize, temp_id: usize, cond_id: usize, hsrc_id: usize) {
+    pub fn add_heat_dom(&mut self, dom_id: usize, temp_id: usize, vlcp_id: usize, cond_id: usize, hsrc_id: usize) {
         self.itr_dom.push(dom_id);
         self.itr_temp.insert(dom_id, temp_id);
+        self.itr_vlcp.insert(dom_id, vlcp_id);
         self.itr_cond.insert(dom_id, cond_id);
         self.itr_hsrc.insert(dom_id, hsrc_id);
     }
@@ -123,9 +125,10 @@ impl TransientBase for TransientHeat {
         // internal operator
         for &dom_id in &self.itr_dom {
             let temp_id = self.itr_temp[&dom_id];
+            let vlcp_id = self.itr_vlcp[&dom_id];
             let cond_id = self.itr_cond[&dom_id];
             let hsrc_id = self.itr_hsrc[&dom_id];
-            let oper_time = OperatorTime::new(dom_id, temp_id); 
+            let oper_time = OperatorTime::new(dom_id, vlcp_id, temp_id); 
             let oper_cond = OperatorDiffusion::new(dom_id, cond_id, temp_id, temp_id);
             let oper_src = OperatorSource::new(dom_id, hsrc_id, temp_id);
             self.oper_itr.push((oper_time, oper_cond, oper_src));
@@ -168,7 +171,7 @@ impl TransientBase for TransientHeat {
 
         // assemble internal data
         for (oper_time, oper_cond, oper_src) in &self.oper_itr {
-            oper_time.apply(vars, &mut a_triplet, b_vec, t, dt);
+            oper_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
             oper_cond.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_src.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }

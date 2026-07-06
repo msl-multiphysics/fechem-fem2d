@@ -69,34 +69,39 @@ impl OperatorBase for OperatorContinuity {
 
             // step 2: assemble global matrix
 
-            // iterate over element nodes
+            // iterate over rows
             let node_id = &itf.elem_node1_id[eid];
             for v in 0..num_node {
+                // get row indices
+                let nid_lmd_v = node_id[v];
+                let nid1_v = itf.node_itf_dom1_id[nid_lmd_v];
+                let nid2_v = itf.node_itf_dom2_id[nid_lmd_v];
+
+                // flag dirichlet boundaries
+                let add_unk1_lmd = !unk1.node_dir[nid1_v] || unk2.node_dir[nid2_v];
+                let add_unk2_lmd = !unk2.node_dir[nid2_v] || unk1.node_dir[nid1_v];
+
+                // iterate over columns
                 for j in 0..num_node {
-                    // get node ids
-                    let nid_lmd_v = node_id[v];
+                    // get column indices
                     let nid_lmd_j = node_id[j];
-                    let nid1_v = itf.node_itf_dom1_id[node_id[v]];
-                    let nid1_j = itf.node_itf_dom1_id[node_id[j]];
-                    let nid2_v = itf.node_itf_dom2_id[node_id[v]];
-                    let nid2_j = itf.node_itf_dom2_id[node_id[j]];
+                    let nid1_j = itf.node_itf_dom1_id[nid_lmd_j];
+                    let nid2_j = itf.node_itf_dom2_id[nid_lmd_j];
 
-                    // impose continuity constraint
-                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk1_id, nid1_j, a_loc[v][j]);
-                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk2_id, nid2_j, -a_loc[v][j]);
+                    // get matrix entry
+                    let a_vj = a_loc[v][j];
 
-                    // Add transpose terms. A single Dirichlet side stays fixed,
-                    // but if both copied interface nodes are Dirichlet, the
-                    // multiplier balances the two prescribed values.
-                    let add_unk1_lmd = !unk1.node_dir[nid1_v] || unk2.node_dir[nid2_v];
-                    let add_unk2_lmd = !unk2.node_dir[nid2_v] || unk1.node_dir[nid1_v];
+                    // continuity constraint on PDEs
+                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk1_id, nid1_j, a_vj);
+                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk2_id, nid2_j, -a_vj);
+
+                    // transpose terms for lagrange multipliers
                     if add_unk1_lmd {
-                        self.add_a_sclitf(vars, a_triplet, self.unk1_id, nid1_v, self.lmd_id, nid_lmd_j, a_loc[v][j]);
+                        self.add_a_sclitf(vars, a_triplet, self.unk1_id, nid1_v, self.lmd_id, nid_lmd_j, a_vj);
                     }
                     if add_unk2_lmd {
-                        self.add_a_sclitf(vars, a_triplet, self.unk2_id, nid2_v, self.lmd_id, nid_lmd_j, -a_loc[v][j]);
+                        self.add_a_sclitf(vars, a_triplet, self.unk2_id, nid2_v, self.lmd_id, nid_lmd_j, -a_vj);
                     }
-
                 }
             }
         }

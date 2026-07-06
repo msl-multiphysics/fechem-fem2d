@@ -32,6 +32,9 @@ impl OperatorSource {
 
 impl OperatorBase for OperatorSource {
     fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
+        // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
+        // therefore, the sign of the local matrix entries is negative
+        
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -56,7 +59,7 @@ impl OperatorBase for OperatorSource {
                     for qid in 0..num_quad {
                         let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
                         let src_val = src.compute_quad(vars, eid, qid, t);
-                        let coeff = -factor * src_val * W_TRI3[qid] * jac_det[qid];
+                        let coeff = -factor * W_TRI3[qid] * src_val * jac_det[qid];
                         for v in 0..num_node {
                             b_loc[v] += coeff * n[v];
                         }
@@ -66,7 +69,7 @@ impl OperatorBase for OperatorSource {
                     for qid in 0..num_quad {
                         let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
                         let src_val = src.compute_quad(vars, eid, qid, t);
-                        let coeff = -factor * src_val * W_QUAD4[qid] * jac_det[qid];
+                        let coeff = -factor * W_QUAD4[qid] * src_val * jac_det[qid];
                         for v in 0..num_node {
                             b_loc[v] += coeff * n[v];
                         }
@@ -82,16 +85,14 @@ impl OperatorBase for OperatorSource {
             // iterate over local vector entries
             let node_id = &dom.elem_node_id[eid];
             for v in 0..num_node {
-                // get node ids
-                let nid_v = node_id[v];
-
                 // skip if dirichlet BC
+                let nid_v = node_id[v];
                 if unk.node_dir[nid_v] {
                     continue;
                 }
 
                 // add to global vector
-                self.add_b_scl(vars, b_vec, self.unk_id, nid_v, -b_loc[v]);
+                self.add_b_scl(vars, b_vec, self.unk_id, nid_v, b_loc[v]);
             }
         }
     }

@@ -9,7 +9,7 @@ pub enum ScalarBoundaryType {
         value: f64,
     },
     Function {
-        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
+        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,    // function of unknown scalars only
         scldom_ids: Vec<usize>,
     },
 }

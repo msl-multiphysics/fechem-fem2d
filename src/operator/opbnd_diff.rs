@@ -16,7 +16,8 @@ pub struct OperatorNeumannDiffusion {
 
 impl OperatorNeumannDiffusion {
     pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OperatorNeumannDiffusion {
-        // applies flx * norm = unk (outward normal) to the unknown scalar
+        // applies -diff * grad(unk) * norm = flx to the unknown scalar
+        // norm is the outward normal to the boundary
 
         // create struct
         let mut oper_diff = OperatorNeumannDiffusion::default();
@@ -31,6 +32,11 @@ impl OperatorNeumannDiffusion {
 
 impl OperatorBase for OperatorNeumannDiffusion {
     fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
+        // +(div(diff * grad(drv)), test)_dom = -(diff grad(drv), grad(test))_dom + (diff grad(unk) * norm, test)_bnd
+        // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
+        // +(diff grad(unk) * norm, test)_bnd is on the Ax side - transpose this to the b side
+        // therefore, the sign of the local vector entries is positive
+        
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
         let itg = &vars.itg_bnd[self.bnd_id];
@@ -55,7 +61,7 @@ impl OperatorBase for OperatorNeumannDiffusion {
                     for qid in 0..num_quad {
                         let n = lin2_eval(A_LIN2[qid]);
                         let flx_val = flx.compute_quad(vars, eid, qid, t);
-                        let coeff = -factor * flx_val * W_LIN2[qid] * jac_det[qid].sqrt();
+                        let coeff = factor * W_LIN2[qid] * flx_val * jac_det[qid].sqrt();
                         for v in 0..num_node {
                             b_loc[v] += coeff * n[v];
                         }

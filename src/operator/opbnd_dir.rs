@@ -37,7 +37,6 @@ impl OperatorBase for OperatorDirichlet {
         // iterate over elements
         for eid in 0..bnd.num_elem {
             // step 1: get local nodes
-
             let num_node = bnd.elem_node_num[eid];
             let node_id = &bnd.elem_node_id[eid];
 

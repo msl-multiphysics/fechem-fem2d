@@ -12,7 +12,7 @@ pub enum ScalarDomainType {
         value: f64,
     },
     Function {
-        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,
+        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,  // function of unknown scalars only
         scldom_ids: Vec<usize>,
     },
     Unknown {
@@ -217,6 +217,82 @@ impl ScalarDomain {
         }
     }
 
+    pub fn compute_quad_prev(&self, vars: &Variables, eid: usize, qid: usize, t_prev: f64) -> f64 {
+        // evaluate based on type
+        match &self.scl_type {
+            ScalarDomainType::Constant { value } => {
+                return *value;
+            }
+            ScalarDomainType::Unknown { .. } => {
+                let dom = &vars.dom[self.dom_id];
+                return self.compute_quad_unknown_domain_prev(dom, eid, qid);
+            }
+            ScalarDomainType::Function { func, scldom_ids } => {
+                // get coordinates
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                let x = itgdom.quad_x[eid][qid];
+                let y = itgdom.quad_y[eid][qid];
+
+                // get scalar values
+                let mut val = Vec::new();
+                for &scldom_id in scldom_ids {
+                    let scldom_sub = &vars.scl_dom[scldom_id];
+                    let val_sub = scldom_sub.compute_quad_unknown_domain_prev(dom, eid, qid);
+                    val.push(val_sub);
+                }
+
+                // evaluate function
+                return func(t_prev, [x, y], &val);
+            }
+        }
+    }
+
+    pub fn compute_quad_unknown_domain_prev(&self, dom: &Domain, eid: usize, qid: usize) -> f64 {
+        let num_node = dom.elem_node_num[eid];
+        match num_node {
+            3 => {
+                let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
+                let mut val = 0.0;
+                for v in 0..num_node {
+                    let nid = dom.elem_node_id[eid][v];
+                    val += n[v] * self.node_prev[nid];
+                }
+                return val;
+            }
+            4 => {
+                let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
+                let mut val = 0.0;
+                for v in 0..num_node {
+                    let nid = dom.elem_node_id[eid][v];
+                    val += n[v] * self.node_prev[nid];
+                }
+                return val;
+            }
+            _ => {
+                panic!("Unsupported number of nodes: {}", num_node);
+            }
+        }
+    }
+
+    pub fn compute_quad_unknown_boundary_prev(&self, bnd: &Boundary, eid: usize, qid: usize) -> f64 {
+        let num_node = bnd.elem_node_num[eid];
+        match num_node {
+            2 => {
+                let n = lin2_eval(A_LIN2[qid]);
+                let mut val = 0.0;
+                for v in 0..num_node {
+                    let nid = bnd.elem_node_id[eid][v];
+                    val += n[v] * self.node_prev[nid];
+                }
+                return val;
+            }
+            _ => {
+                panic!("Unsupported number of nodes: {}", num_node);
+            }
+        }
+    }
+
     pub fn update_unknown(&mut self, dom: &Domain, x_vec: &Col<f64>) {
         // skip if not unknown type
         match self.scl_type {
@@ -244,6 +320,7 @@ impl ScalarDomain {
             }
         }
     }
+
 }
 
 // put outside of struct to avoid circular dependency

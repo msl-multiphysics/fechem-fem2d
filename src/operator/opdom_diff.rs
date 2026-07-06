@@ -17,7 +17,7 @@ pub struct OperatorDiffusion {
 
 impl OperatorDiffusion {
     pub fn new(dom_id: usize, diff_id: usize, unk_id: usize, drv_id: usize) -> OperatorDiffusion {
-        // adds -diff * lapl(drv) to RHS
+        // adds +div(diff * grad(drv)) to RHS
         // LHS is 0 for steady state or d(unk)/dt for transient
 
         // create struct
@@ -34,6 +34,10 @@ impl OperatorDiffusion {
 
 impl OperatorBase for OperatorDiffusion {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
+        // +(div(diff * grad(drv)), test)_dom = -(diff grad(drv), grad(test))_dom + (diff grad(unk) * norm, test)_bnd
+        // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
+        // therefore, the sign of the local matrix entries is negative
+    
         // get objects
         let dom = &vars.dom[self.dom_id];
         let itg = &vars.itg_dom[self.dom_id];
@@ -59,12 +63,10 @@ impl OperatorBase for OperatorDiffusion {
                 3 => {
                     for qid in 0..num_quad {
                         let diff_val = diff.compute_quad(vars, eid, qid, t);
-                        let coeff = factor * diff_val * W_TRI3[qid] * jac_det[qid];
+                        let coeff = -factor * W_TRI3[qid] * diff_val * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff
-                                    * (gradn_x[qid][v] * gradn_x[qid][j]
-                                        + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }
@@ -72,12 +74,10 @@ impl OperatorBase for OperatorDiffusion {
                 4 => {
                     for qid in 0..num_quad {
                         let diff_val = diff.compute_quad(vars, eid, qid, t);
-                        let coeff = factor * diff_val * W_QUAD4[qid] * jac_det[qid];
+                        let coeff = -factor * W_QUAD4[qid] * diff_val * jac_det[qid];
                         for v in 0..num_node {
                             for j in 0..num_node {
-                                a_loc[v][j] += coeff
-                                    * (gradn_x[qid][v] * gradn_x[qid][j]
-                                        + gradn_y[qid][v] * gradn_y[qid][j]);
+                                a_loc[v][j] += coeff * (gradn_x[qid][v] * gradn_x[qid][j] + gradn_y[qid][v] * gradn_y[qid][j]);
                             }
                         }
                     }
@@ -92,17 +92,15 @@ impl OperatorBase for OperatorDiffusion {
             // iterate over local matrix entries
             let node_id = &dom.elem_node_id[eid];
             for v in 0..num_node {
+                // skip if dirichlet BC
+                let nid_v = node_id[v];
+                if unk.node_dir[nid_v] {
+                    continue;
+                }
+                
+                // add to global matrix
                 for j in 0..num_node {
-                    // get node ids
-                    let nid_v = node_id[v];
                     let nid_j = node_id[j];
-
-                    // skip if dirichlet BC
-                    if unk.node_dir[nid_v] {
-                        continue;
-                    }
-
-                    // add to global matrix
                     self.add_a_sclscl(vars, a_triplet, self.unk_id, nid_v, self.drv_id, nid_j, a_loc[v][j]);
                 }
             }
