@@ -225,7 +225,7 @@ impl ScalarDomain {
             }
             ScalarDomainType::Unknown { .. } => {
                 let dom = &vars.dom[self.dom_id];
-                return self.compute_quad_unknown_domain_prev(dom, eid, qid);
+                return self.compute_quad_unknown_prev(dom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
                 // get coordinates
@@ -238,7 +238,7 @@ impl ScalarDomain {
                 let mut val = Vec::new();
                 for &scldom_id in scldom_ids {
                     let scldom_sub = &vars.scl_dom[scldom_id];
-                    let val_sub = scldom_sub.compute_quad_unknown_domain_prev(dom, eid, qid);
+                    let val_sub = scldom_sub.compute_quad_unknown_prev(dom, eid, qid);
                     val.push(val_sub);
                 }
 
@@ -248,7 +248,7 @@ impl ScalarDomain {
         }
     }
 
-    pub fn compute_quad_unknown_domain_prev(&self, dom: &Domain, eid: usize, qid: usize) -> f64 {
+    pub fn compute_quad_unknown_prev(&self, dom: &Domain, eid: usize, qid: usize) -> f64 {
         let num_node = dom.elem_node_num[eid];
         match num_node {
             3 => {
@@ -265,24 +265,6 @@ impl ScalarDomain {
                 let mut val = 0.0;
                 for v in 0..num_node {
                     let nid = dom.elem_node_id[eid][v];
-                    val += n[v] * self.node_prev[nid];
-                }
-                return val;
-            }
-            _ => {
-                panic!("Unsupported number of nodes: {}", num_node);
-            }
-        }
-    }
-
-    pub fn compute_quad_unknown_boundary_prev(&self, bnd: &Boundary, eid: usize, qid: usize) -> f64 {
-        let num_node = bnd.elem_node_num[eid];
-        match num_node {
-            2 => {
-                let n = lin2_eval(A_LIN2[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = bnd.elem_node_id[eid][v];
                     val += n[v] * self.node_prev[nid];
                 }
                 return val;
