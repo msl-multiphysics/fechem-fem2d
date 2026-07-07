@@ -9,7 +9,7 @@ pub enum ScalarBoundaryType {
         value: f64,
     },
     Function {
-        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,    // function of unknown scalars only
+        func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>,    // function of unknown scalars only
         scldom_ids: Vec<usize>,
     },
 }
@@ -62,7 +62,7 @@ impl ScalarBoundary {
         Ok(sclbnd)
     }
 
-    pub fn new_from_function(sclbnd_id: usize, bnd: &Boundary, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarBoundary, FEChemError> {
+    pub fn new_from_function(sclbnd_id: usize, bnd: &Boundary, value_func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarBoundary, FEChemError> {
         // create struct
         let mut sclbnd = ScalarBoundary::default();
         sclbnd.sclbnd_id = sclbnd_id;
@@ -111,11 +111,8 @@ impl ScalarBoundary {
                 return *value;
             }
             ScalarBoundaryType::Function { func, scldom_ids } => {
-                // get coordinates
+                // get boundary
                 let bnd = &vars.bnd[self.bnd_id];
-                let itgbnd = &vars.itg_bnd[self.bnd_id];
-                let x = itgbnd.quad_x[eid][qid];
-                let y = itgbnd.quad_y[eid][qid];
 
                 // get scalar values
                 let mut val = Vec::new();
@@ -126,7 +123,7 @@ impl ScalarBoundary {
                 }
 
                 // evaluate function
-                return func(t, [x, y], &val);
+                return func(t, &val);
             }
         }
     }
@@ -149,8 +146,6 @@ pub fn update_function_sclbnd(vars: &mut Variables, sclbnd_id: usize, t: f64) {
 
     // evaluate function on node points
     for nid in 0..bnd.num_node {
-        let x = bnd.node_x[nid];
-        let y = bnd.node_y[nid];
         let mut val = Vec::new();
         for &scldom_id in scldom_ids {
             let scldom_sub = &vars.scl_dom[scldom_id];
@@ -158,7 +153,7 @@ pub fn update_function_sclbnd(vars: &mut Variables, sclbnd_id: usize, t: f64) {
             let val_sub = scldom_sub.node_value[nid_dom];
             val.push(val_sub);
         }
-        let value = func(t, [x, y], &val);
+        let value = func(t, &val);
         node_value.push(value);
     }
 

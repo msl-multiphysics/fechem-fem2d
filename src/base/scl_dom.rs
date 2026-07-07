@@ -12,7 +12,7 @@ pub enum ScalarDomainType {
         value: f64,
     },
     Function {
-        func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>,  // function of unknown scalars only
+        func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>,  // function of unknown scalars only
         scldom_ids: Vec<usize>,
     },
     Unknown {
@@ -70,7 +70,7 @@ impl ScalarDomain {
         Ok(scldom)
     }
 
-    pub fn new_from_function(scldom_id: usize, dom: &Domain, value_func: Box<dyn Fn(f64, [f64; 2], &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarDomain, FEChemError> {
+    pub fn new_from_function(scldom_id: usize, dom: &Domain, value_func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<ScalarDomain, FEChemError> {
         // create struct
         let mut scldom = ScalarDomain::default();
         scldom.scldom_id = scldom_id;
@@ -152,11 +152,8 @@ impl ScalarDomain {
                 return self.compute_quad_unknown_domain(dom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
-                // get coordinates
+                // get domain
                 let dom = &vars.dom[self.dom_id];
-                let itgdom = &vars.itg_dom[self.dom_id];
-                let x = itgdom.quad_x[eid][qid];
-                let y = itgdom.quad_y[eid][qid];
 
                 // get scalar values
                 let mut val = Vec::new();
@@ -167,7 +164,7 @@ impl ScalarDomain {
                 }
 
                 // evaluate function
-                return func(t, [x, y], &val);
+                return func(t, &val);
             }
         }
     }
@@ -228,11 +225,8 @@ impl ScalarDomain {
                 return self.compute_quad_unknown_prev(dom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
-                // get coordinates
+                // get domain
                 let dom = &vars.dom[self.dom_id];
-                let itgdom = &vars.itg_dom[self.dom_id];
-                let x = itgdom.quad_x[eid][qid];
-                let y = itgdom.quad_y[eid][qid];
 
                 // get scalar values
                 let mut val = Vec::new();
@@ -243,7 +237,7 @@ impl ScalarDomain {
                 }
 
                 // evaluate function
-                return func(t_prev, [x, y], &val);
+                return func(t_prev, &val);
             }
         }
     }
@@ -322,15 +316,13 @@ pub fn update_function_scldom(vars: &mut Variables, scldom_id: usize, t: f64) {
 
     // evaluate function on node points
     for nid in 0..dom.num_node {
-        let x = dom.node_x[nid];
-        let y = dom.node_y[nid];
         let mut val = Vec::new();
         for &scldom_id in scldom_ids {
             let scldom_sub = &vars.scl_dom[scldom_id];
             let val_sub = scldom_sub.node_value[nid];
             val.push(val_sub);
         }
-        let value = func(t, [x, y], &val);
+        let value = func(t, &val);
         node_value.push(value);
     }
 

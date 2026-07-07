@@ -13,3 +13,6 @@ pub mod scl_itf;
 pub mod vars;
 pub mod write_csv;
 pub mod write_vtu;
+pub mod vec_bnd;
+pub mod vec_dom;
+pub mod vec_itf;
