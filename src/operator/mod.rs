@@ -2,14 +2,14 @@
 pub mod oper_base;
 pub mod prelude;
 
-// boundary operators
-pub mod opbnd_diff;
-pub mod opbnd_dir;
+// scalar boundary operators
+pub mod opscl_bnd_diff;
+pub mod opscl_bnd_dir;
 
-// domain operators
-pub mod opdom_diff;
-pub mod opdom_src;
-pub mod opdom_time;
+// scalar domain operators
+pub mod opscl_dom_diff;
+pub mod opscl_dom_src;
+pub mod opscl_dom_time;
 
-// interface operators
-pub mod opitf_cont;
+// scalar interface operators
+pub mod opscl_itf_cont;

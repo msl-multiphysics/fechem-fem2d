@@ -92,7 +92,7 @@ impl OperatorBase for OperatorSource {
                 }
 
                 // add to global vector
-                self.add_b_scl(vars, b_vec, self.unk_id, nid_v, b_loc[v]);
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, b_loc[v]);
             }
         }
     }

@@ -106,7 +106,7 @@ impl OperatorTime {
                 // add current time step
                 for j in 0..num_node {
                     let nid_j = node_id[j];
-                    self.add_a_sclscl(vars, a_triplet, self.unk_id, nid_v, self.unk_id, nid_j, a_loc[v][j]);
+                    self.add_a_scldom(vars, a_triplet, self.unk_id, nid_v, self.unk_id, nid_j, a_loc[v][j]);
                 }
 
                 // add previous time step values
@@ -115,7 +115,7 @@ impl OperatorTime {
                     let nid_j = node_id[j];
                     b_contrib += b_loc[v][j] * unk.node_prev[nid_j];
                 }
-                self.add_b_scl(vars, b_vec, self.unk_id, nid_v, b_contrib);
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, b_contrib);
 
             }
         }

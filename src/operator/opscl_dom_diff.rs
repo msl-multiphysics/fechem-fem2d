@@ -101,7 +101,7 @@ impl OperatorBase for OperatorDiffusion {
                 // add to global matrix
                 for j in 0..num_node {
                     let nid_j = node_id[j];
-                    self.add_a_sclscl(vars, a_triplet, self.unk_id, nid_v, self.drv_id, nid_j, a_loc[v][j]);
+                    self.add_a_scldom(vars, a_triplet, self.unk_id, nid_v, self.drv_id, nid_j, a_loc[v][j]);
                 }
             }
         }

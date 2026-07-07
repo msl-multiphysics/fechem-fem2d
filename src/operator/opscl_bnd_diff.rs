@@ -87,7 +87,7 @@ impl OperatorBase for OperatorNeumannDiffusion {
                 }
 
                 // add to global vector
-                self.add_b_scl(vars, b_vec, self.unk_id, nid_dom, b_loc[v]);
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_dom, b_loc[v]);
             }
         }
     }

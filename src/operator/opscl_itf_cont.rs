@@ -92,15 +92,15 @@ impl OperatorBase for OperatorContinuity {
                     let a_vj = a_loc[v][j];
 
                     // continuity constraint on PDEs
-                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk1_id, nid1_j, a_vj);
-                    self.add_a_itfscl(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk2_id, nid2_j, -a_vj);
+                    self.add_a_sclitf_scldom(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk1_id, nid1_j, a_vj);
+                    self.add_a_sclitf_scldom(vars, a_triplet, self.lmd_id, nid_lmd_v, self.unk2_id, nid2_j, -a_vj);
 
                     // transpose terms for lagrange multipliers
                     if add_unk1_lmd {
-                        self.add_a_sclitf(vars, a_triplet, self.unk1_id, nid1_v, self.lmd_id, nid_lmd_j, a_vj);
+                        self.add_a_scldom_sclitf(vars, a_triplet, self.unk1_id, nid1_v, self.lmd_id, nid_lmd_j, a_vj);
                     }
                     if add_unk2_lmd {
-                        self.add_a_sclitf(vars, a_triplet, self.unk2_id, nid2_v, self.lmd_id, nid_lmd_j, -a_vj);
+                        self.add_a_scldom_sclitf(vars, a_triplet, self.unk2_id, nid2_v, self.lmd_id, nid_lmd_j, -a_vj);
                     }
                 }
             }

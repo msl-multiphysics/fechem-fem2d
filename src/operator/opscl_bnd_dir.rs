@@ -52,8 +52,8 @@ impl OperatorBase for OperatorDirichlet {
                 let val = val.node_value[nid_bnd];
 
                 // impose dirichlet BC
-                self.add_a_sclscl(vars, a_triplet, self.unk_id, nid_dom, self.unk_id, nid_dom, 1.0);
-                self.add_b_scl(vars, b_vec, self.unk_id, nid_dom, factor * val);
+                self.add_a_scldom(vars, a_triplet, self.unk_id, nid_dom, self.unk_id, nid_dom, 1.0);
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_dom, factor * val);
             }
         }
     }
