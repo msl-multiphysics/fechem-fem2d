@@ -116,6 +116,8 @@ impl VectorDomain {
         // set values
         vecdom.vec_type = VectorDomainType::Unknown { start: 0 };
         vecdom.node_value_x = vec![value_init_x; dom.num_node];
+        vecdom.node_value_y = vec![value_init_y; dom.num_node];
+        vecdom.node_prev_x = vec![value_init_x; dom.num_node];
         vecdom.node_prev_y = vec![value_init_y; dom.num_node];
         vecdom.node_dir = vec![false; dom.num_node];
 

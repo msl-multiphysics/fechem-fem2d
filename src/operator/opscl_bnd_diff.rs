@@ -5,7 +5,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OperatorNeumannDiffusion {
+pub struct OpSclBndNeumannDiffusion {
     // boundary
     pub bnd_id: usize,
 
@@ -14,13 +14,13 @@ pub struct OperatorNeumannDiffusion {
     pub unk_id: usize, // unknown scalar
 }
 
-impl OperatorNeumannDiffusion {
-    pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OperatorNeumannDiffusion {
+impl OpSclBndNeumannDiffusion {
+    pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OpSclBndNeumannDiffusion {
         // applies -diff * grad(unk) * norm = flx to the unknown scalar
         // norm is the outward normal to the boundary
 
         // create struct
-        let mut oper_diff = OperatorNeumannDiffusion::default();
+        let mut oper_diff = OpSclBndNeumannDiffusion::default();
         oper_diff.bnd_id = bnd_id;
         oper_diff.flx_id = flx_id;
         oper_diff.unk_id = unk_id;
@@ -30,7 +30,7 @@ impl OperatorNeumannDiffusion {
     }
 }
 
-impl OperatorBase for OperatorNeumannDiffusion {
+impl OperatorBase for OpSclBndNeumannDiffusion {
     fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // +(div(diff * grad(drv)), test)_dom = -(diff grad(drv), grad(test))_dom + (diff grad(unk) * norm, test)_bnd
         // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE

@@ -5,7 +5,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OperatorSource {
+pub struct OpSclDomSource {
     // domain
     pub dom_id: usize,
 
@@ -14,13 +14,13 @@ pub struct OperatorSource {
     pub unk_id: usize, // unknown scalar
 }
 
-impl OperatorSource {
-    pub fn new(dom_id: usize, src_id: usize, unk_id: usize) -> OperatorSource {
+impl OpSclDomSource {
+    pub fn new(dom_id: usize, src_id: usize, unk_id: usize) -> OpSclDomSource {
         // adds +src to RHS
         // LHS is 0 for steady state or d(unk)/dt for transient
 
         // create struct
-        let mut oper_src = OperatorSource::default();
+        let mut oper_src = OpSclDomSource::default();
         oper_src.dom_id = dom_id;
         oper_src.src_id = src_id;
         oper_src.unk_id = unk_id;
@@ -30,7 +30,7 @@ impl OperatorSource {
     }
 }
 
-impl OperatorBase for OperatorSource {
+impl OperatorBase for OpSclDomSource {
     fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
         // therefore, the sign of the local matrix entries is negative

@@ -27,10 +27,10 @@ pub struct TransientHeat {
     pub cont_lmd: HashMap<usize, usize>, // continuity
 
     // operators
-    pub oper_itr: Vec<(OperatorTime, OperatorDiffusion, OperatorSource)>,
-    pub oper_bnd_temp: Vec<OperatorDirichlet>,
-    pub oper_bnd_hflx: Vec<OperatorNeumannDiffusion>,
-    pub oper_cont_itf: Vec<OperatorContinuity>,
+    pub oper_itr: Vec<(OpSclDomTime, OpSclDomDiffusion, OpSclDomSource)>,
+    pub oper_bnd_temp: Vec<OpSclBndDirichlet>,
+    pub oper_bnd_hflx: Vec<OpSclBndNeumannDiffusion>,
+    pub oper_cont_itf: Vec<OpSclItfContinuity>,
 }
 
 impl TransientHeat {
@@ -128,9 +128,9 @@ impl TransientBase for TransientHeat {
             let vlcp_id = self.itr_vlcp[&dom_id];
             let cond_id = self.itr_cond[&dom_id];
             let hsrc_id = self.itr_hsrc[&dom_id];
-            let oper_time = OperatorTime::new(dom_id, vlcp_id, temp_id); 
-            let oper_cond = OperatorDiffusion::new(dom_id, cond_id, temp_id, temp_id);
-            let oper_src = OperatorSource::new(dom_id, hsrc_id, temp_id);
+            let oper_time = OpSclDomTime::new(dom_id, vlcp_id, temp_id); 
+            let oper_cond = OpSclDomDiffusion::new(dom_id, cond_id, temp_id, temp_id);
+            let oper_src = OpSclDomSource::new(dom_id, hsrc_id, temp_id);
             self.oper_itr.push((oper_time, oper_cond, oper_src));
         }
 
@@ -139,7 +139,7 @@ impl TransientBase for TransientHeat {
             let dom_id = vars.bnd[bnd_id].dom_id;
             let dom_temp_id = self.itr_temp[&dom_id];
             let bnd_temp_id = self.temp_temp[&bnd_id];
-            let oper_dir = OperatorDirichlet::new(bnd_id, bnd_temp_id, dom_temp_id);
+            let oper_dir = OpSclBndDirichlet::new(bnd_id, bnd_temp_id, dom_temp_id);
             self.oper_bnd_temp.push(oper_dir);
         }
 
@@ -148,7 +148,7 @@ impl TransientBase for TransientHeat {
             let dom_id = vars.bnd[bnd_id].dom_id;
             let dom_temp_id = self.itr_temp[&dom_id];
             let bnd_hflx_id = self.hflx_hflx[&bnd_id];
-            let oper_neu = OperatorNeumannDiffusion::new(bnd_id, bnd_hflx_id, dom_temp_id);
+            let oper_neu = OpSclBndNeumannDiffusion::new(bnd_id, bnd_hflx_id, dom_temp_id);
             self.oper_bnd_hflx.push(oper_neu);
         }
 
@@ -159,7 +159,7 @@ impl TransientBase for TransientHeat {
             let dom_temp1_id = self.itr_temp[&dom1_id];
             let dom_temp2_id = self.itr_temp[&dom2_id];
             let lmd_id = self.cont_lmd[&itf_id];
-            let oper_cont = OperatorContinuity::new(itf_id, lmd_id, dom_temp1_id, dom_temp2_id);
+            let oper_cont = OpSclItfContinuity::new(itf_id, lmd_id, dom_temp1_id, dom_temp2_id);
             self.oper_cont_itf.push(oper_cont);
         }
     }

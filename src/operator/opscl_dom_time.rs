@@ -5,7 +5,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OperatorTime {
+pub struct OpSclDomTime {
     // domain
     pub dom_id: usize,
 
@@ -14,13 +14,13 @@ pub struct OperatorTime {
     pub unk_id: usize, // unknown scalar
 }
 
-impl OperatorTime {
-    pub fn new(dom_id: usize, wgt_id: usize, unk_id: usize) -> OperatorTime {
+impl OpSclDomTime {
+    pub fn new(dom_id: usize, wgt_id: usize, unk_id: usize) -> OpSclDomTime {
         // adds d(wgt * unk)/dt to LHS using backward Euler
         // in the apply function, factor is dt
 
         // create struct
-        let mut oper_time = OperatorTime::default();
+        let mut oper_time = OpSclDomTime::default();
         oper_time.dom_id = dom_id;
         oper_time.wgt_id = wgt_id;
         oper_time.unk_id = unk_id;
@@ -122,7 +122,7 @@ impl OperatorTime {
     }
 }
 
-impl OperatorBase for OperatorTime {
+impl OperatorBase for OpSclDomTime {
     fn apply(&self, _vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, _factor: f64) {
         // do not use this. use apply_time instead
         panic!("Used apply for OperatorTime. Must use apply_time instead.");

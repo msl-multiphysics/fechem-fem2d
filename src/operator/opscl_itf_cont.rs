@@ -5,7 +5,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OperatorContinuity {
+pub struct OpSclItfContinuity {
     // interface
     pub itf_id: usize,
 
@@ -15,10 +15,10 @@ pub struct OperatorContinuity {
     pub unk2_id: usize, // unknown scalar on domain 2
 }
 
-impl OperatorContinuity {
-    pub fn new(itf_id: usize, lmd_id: usize, unk1_id: usize, unk2_id: usize) -> OperatorContinuity {
+impl OpSclItfContinuity {
+    pub fn new(itf_id: usize, lmd_id: usize, unk1_id: usize, unk2_id: usize) -> OpSclItfContinuity {
         // create struct
-        let mut oper_cont = OperatorContinuity::default();
+        let mut oper_cont = OpSclItfContinuity::default();
         oper_cont.itf_id = itf_id;
         oper_cont.lmd_id = lmd_id;
         oper_cont.unk1_id = unk1_id;
@@ -29,7 +29,7 @@ impl OperatorContinuity {
     }
 }
 
-impl OperatorBase for OperatorContinuity {
+impl OperatorBase for OpSclItfContinuity {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, factor: f64) {
         // get objects
         let itf = &vars.itf[self.itf_id];
