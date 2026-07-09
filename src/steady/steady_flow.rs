@@ -32,7 +32,7 @@ pub struct SteadyFlow {
     pub pref_pres: f64,
 
     // operators
-    pub oper_itr: Vec<(OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpSclDomDivergence)>,
+    pub oper_itr: Vec<(OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupg, OpSclDomDivergence, OpSclDomPspg)>,
     pub oper_bnd_vel: Vec<OpVecBndDirichlet>,
     pub oper_bnd_pres: Vec<OpSclBndDirichlet>,
 
@@ -145,9 +145,11 @@ impl SteadyBase for SteadyFlow {
             let oper_pres = OpVecDomPressure::new(dom_id, vel_id, pres_id);
             let oper_diff = OpVecDomDiffusion::new(dom_id, visc_id, vel_id, vel_id);
             let oper_src = OpVecDomSource::new(dom_id, fce_id, vel_id);
+            let oper_supg = OpVecDomSupg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, vel_id);
             let oper_div = OpSclDomDivergence::new(dom_id, den_id, vel_id, pres_id);
+            let oper_pspg = OpSclDomPspg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, pres_id);
 
-            self.oper_itr.push((oper_adv, oper_pres, oper_diff, oper_src, oper_div));
+            self.oper_itr.push((oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_div, oper_pspg));
         }
 
         // boundary velocity operator
@@ -176,12 +178,14 @@ impl SteadyBase for SteadyFlow {
         *b_vec = Col::zeros(mat_size);
 
         // assemble internal data
-        for (oper_adv, oper_pres, oper_diff, oper_src, oper_div) in &self.oper_itr {
+        for (oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_div, oper_pspg) in &self.oper_itr {
             oper_adv.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
             oper_pres.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
             oper_diff.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
             oper_src.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_supg.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
             oper_div.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
+            oper_pspg.apply(vars, &mut a_triplet, b_vec, 0.0, 1.0);
         }
 
         // assemble boundary data
