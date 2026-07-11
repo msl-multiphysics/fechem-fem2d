@@ -28,7 +28,7 @@ pub struct SteadyHeat {
     // operators
     pub oper_itr: Vec<(OpSclDomDiffusion, OpSclDomSource)>,
     pub oper_bnd_temp: Vec<OpSclBndDirichlet>,
-    pub oper_bnd_hflx: Vec<OpSclBndNeumannDiffusion>,
+    pub oper_bnd_hflx: Vec<OpSclBndNeumann>,
     pub oper_cont_itf: Vec<OpSclItfContinuity>,
 }
 
@@ -144,7 +144,7 @@ impl SteadyBase for SteadyHeat {
             let dom_id = vars.bnd[bnd_id].dom_id;
             let dom_temp_id = self.itr_temp[&dom_id];
             let bnd_hflx_id = self.hflx_hflx[&bnd_id];
-            let oper_neu = OpSclBndNeumannDiffusion::new(bnd_id, bnd_hflx_id, dom_temp_id);
+            let oper_neu = OpSclBndNeumann::new(bnd_id, bnd_hflx_id, dom_temp_id);
             self.oper_bnd_hflx.push(oper_neu);
         }
 

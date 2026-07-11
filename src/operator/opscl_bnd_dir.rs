@@ -15,7 +15,11 @@ pub struct OpSclBndDirichlet {
 
 impl OpSclBndDirichlet {
     pub fn new(bnd_id: usize, val_id: usize, unk_id: usize) -> OpSclBndDirichlet {
-        // imposes unk = val on the unknown scalar
+        // applies a Dirichlet BC
+        // c_i = u_i
+        // 
+        // val - prescribed value (u_i)
+        // unk - unknown scalar (c_i)
 
         // create struct
         let mut oper_dir = OpSclBndDirichlet::default();
@@ -36,13 +40,9 @@ impl OperatorBase for OpSclBndDirichlet {
 
         // iterate over elements
         for eid in 0..bnd.num_elem {
-            // step 1: get local nodes
+            // iterate over nodes in element
             let num_node = bnd.elem_node[eid];
             let node_id = &bnd.elem_node_id[eid];
-
-            // step 2: assemble global matrix and vector
-
-            // iterate over element nodes
             for v in 0..num_node {
                 // get node ids
                 let nid_bnd = node_id[v];
@@ -56,5 +56,6 @@ impl OperatorBase for OpSclBndDirichlet {
                 self.add_b_scldom(vars, b_vec, self.unk_id, nid_dom, factor * val);
             }
         }
+
     }
 }

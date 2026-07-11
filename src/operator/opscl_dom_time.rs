@@ -1,6 +1,5 @@
 use crate::base::vars::Variables;
 use crate::operator::oper_base::OperatorBase;
-use crate::shape::prelude::*;
 use faer::Col;
 use faer::sparse::Triplet;
 
@@ -16,8 +15,11 @@ pub struct OpSclDomTime {
 
 impl OpSclDomTime {
     pub fn new(dom_id: usize, wgt_id: usize, unk_id: usize) -> OpSclDomTime {
-        // adds d(wgt * unk)/dt to LHS using backward Euler
-        // in the apply function, factor is dt
+        // adds the time derivative term to scalar transport equations
+        // d(m_i * c_i)/dt = -div( N_i ) + R_i
+        // 
+        // wgt - mass scalar (m_i)
+        // unk - unknown scalar (c_i)
 
         // create struct
         let mut oper_time = OpSclDomTime::default();
@@ -30,15 +32,21 @@ impl OpSclDomTime {
     }
 
     pub fn apply_time(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t_next: f64, dt: f64, factor: f64) {
-        // backward Euler discretizes d(wgt * unk)/dt as (wgt * unk - wgt_prev * unk_prev) / dt
-        // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
-        // therefore, the local matrix (wgt * unk)/dt and vector (wgt_prev * unk_prev)/dt are negative
-
+        // time derivative is discretized using backward Euler
+        // d(m * c)/dt = (m_next * c_next - m_curr * c_curr) / dt
+        // 
+        // apply the weak form of the time derivative term
+        // (d(m * c)/dt, w)_dom = ((m_next * c_next)/dt, w)_dom - ((m_curr * c_curr)/dt, w)_dom
+        // 
+        // let A (in Ax = b) be the RHS of the PDE and b in the LHS
+        // add ((m_next * c_next)/dt, w)_dom to b -> add -((m_next * c_next)/dt, w)_dom to b
+        // add -((m_curr * c_curr)/dt, w)_dom to b
+        
         // get objects
         let dom = &vars.dom[self.dom_id];
-        let itg = &vars.itg_dom[self.dom_id];
-        let wgt = &vars.scl_dom[self.wgt_id];
-        let unk = &vars.scl_dom[self.unk_id];
+        let itgdom = &vars.itg_dom[self.dom_id];
+        let wgt_scl = &vars.scl_dom[self.wgt_id];
+        let unk_scl = &vars.scl_dom[self.unk_id];
 
         // iterate over elements
         for eid in 0..dom.num_elem {
@@ -46,78 +54,61 @@ impl OpSclDomTime {
 
             // initialize local matrix
             let num_node = dom.elem_node[eid];
-            let mut a_loc = vec![vec![0.0; num_node]; num_node];
-            let mut b_loc = vec![vec![0.0; num_node]; num_node];
+            let mut an_loc = vec![vec![0.0; num_node]; num_node];  // next time step
+            let mut ac_loc = vec![vec![0.0; num_node]; num_node];  // current time step
 
-            // get integral data
-            let num_quad = itg.num_quad[eid];
-            let jac_det = &itg.jac_det[eid];
+            // get quadrature point data
+            let num_quad = itgdom.num_quad[eid];
+            let quad_w = &itgdom.quad_w[eid];
+            let quad_n = &itgdom.quad_n[eid];
+            let jac_det = &itgdom.jac_det[eid];
 
             // assemble local mass matrix
-            match num_node {
-                3 => {
-                    for qid in 0..num_quad {
-                        let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
-                        let t_prev = t_next - dt;
-                        let wgt_val = wgt.compute_quad(vars, eid, qid, t_next);
-                        let wgt_val_prev = wgt.compute_quad_prev(vars, eid, qid, t_prev);
-                        let coeff = -factor * W_TRI3[qid] * wgt_val * jac_det[qid] / dt;
-                        let coeff_prev = -factor * W_TRI3[qid] * wgt_val_prev * jac_det[qid] / dt;
-                        for v in 0..num_node {
-                            for j in 0..num_node {
-                                a_loc[v][j] += coeff * n[v] * n[j];
-                                b_loc[v][j] += coeff_prev * n[v] * n[j];
-                            }
-                        }
+            for qid in 0..num_quad {
+                // next time step
+                let wgt = wgt_scl.compute_quad(vars, eid, qid, t_next);
+                let coeff = -factor * quad_w[qid] * wgt * jac_det[qid] / dt;
+
+                // current time step
+                let t_curr = t_next - dt;
+                let wgt_curr = wgt_scl.compute_quad_prev(vars, eid, qid, t_curr);
+                let coeff_curr = -factor * quad_w[qid] * wgt_curr * jac_det[qid] / dt;
+
+                // load entries
+                for v in 0..num_node {
+                    for j in 0..num_node {
+                        an_loc[v][j] += coeff * quad_n[qid][v] * quad_n[qid][j];
+                        ac_loc[v][j] += coeff_curr * quad_n[qid][v] * quad_n[qid][j];
                     }
-                }
-                4 => {
-                    for qid in 0..num_quad {
-                        let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
-                        let t_prev = t_next - dt;
-                        let wgt_val = wgt.compute_quad(vars, eid, qid, t_next);
-                        let wgt_val_prev = wgt.compute_quad_prev(vars, eid, qid, t_prev);
-                        let coeff = -factor * W_QUAD4[qid] * wgt_val * jac_det[qid] / dt;
-                        let coeff_prev = -factor * W_QUAD4[qid] * wgt_val_prev * jac_det[qid] / dt;
-                        for v in 0..num_node {
-                            for j in 0..num_node {
-                                a_loc[v][j] += coeff * n[v] * n[j];
-                                b_loc[v][j] += coeff_prev * n[v] * n[j];
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    panic!("Invalid element type");
                 }
             }
 
-            // step 2: assemble global matrix and vector
+            // step 2: add to global matrix
 
             // iterate over local matrix entries
             let node_id = &dom.elem_node_id[eid];
             for v in 0..num_node {
                 // skip if dirichlet BC
                 let nid_v = node_id[v];
-                if unk.node_dir[nid_v] {
+                if unk_scl.node_dir[nid_v] {
                     continue;
                 }
 
+                // add next time step
+                for j in 0..num_node {
+                    let nid_j = node_id[j];
+                    self.add_a_scldom(vars, a_triplet, self.unk_id, nid_v, self.unk_id, nid_j, an_loc[v][j]);
+                }
+
                 // add current time step
+                let mut ac_sum = 0.0;
                 for j in 0..num_node {
                     let nid_j = node_id[j];
-                    self.add_a_scldom(vars, a_triplet, self.unk_id, nid_v, self.unk_id, nid_j, a_loc[v][j]);
+                    ac_sum += ac_loc[v][j] * unk_scl.node_value_prev[nid_j];
                 }
-
-                // add previous time step values
-                let mut b_contrib = 0.0;
-                for j in 0..num_node {
-                    let nid_j = node_id[j];
-                    b_contrib += b_loc[v][j] * unk.node_value_prev[nid_j];
-                }
-                self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, b_contrib);
-
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, ac_sum);
             }
+            
         }
     }
 }
