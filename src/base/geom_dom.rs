@@ -14,7 +14,8 @@ pub struct Domain {
 
     // element data
     pub num_elem: usize,               // number of 2d elements
-    pub elem_node_num: Vec<usize>,     // number of nodes (3 - tri; 4 - quad)
+    pub elem_type: Vec<usize>,         // type of element (13 - P1 tri; 14 - P1 quad)
+    pub elem_node: Vec<usize>,         // number of nodes (3 - P1 tri; 4 - P1 quad)
     pub elem_node_id: Vec<Vec<usize>>, // node ids of elements
 
     // domain-mesh mapping
@@ -64,10 +65,11 @@ impl Domain {
         // get element data
         for &elem_mid in dom.elem_dom_mesh_id.iter() {
             // element type - copy from mesh
-            dom.elem_node_num.push(mesh.elm2d_node_num[elem_mid]);
+            dom.elem_type.push(mesh.elm2d_type[elem_mid]);
+            dom.elem_node.push(mesh.elm2d_node[elem_mid]);
 
             // node ids - convert from global to local
-            let mut node_id = Vec::with_capacity(mesh.elm2d_node_num[elem_mid]);
+            let mut node_id = Vec::with_capacity(mesh.elm2d_node[elem_mid]);
             for (_, &node_mid) in mesh.elm2d_node_id[elem_mid].iter().enumerate() {
                 node_id.push(dom.node_mesh_dom_id[&node_mid]);
             }

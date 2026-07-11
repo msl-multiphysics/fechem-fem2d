@@ -42,7 +42,7 @@ impl OperatorBase for OpSclItfContinuity {
             // step 1: assemble local matrix
 
             // initialize local matrix
-            let num_node = itf.elem_node_num[eid];
+            let num_node = itf.elem_node[eid];
             let mut a_loc = vec![vec![0.0; num_node]; num_node];
 
             // get integral data

@@ -47,7 +47,7 @@ impl OperatorBase for OpVecDomSource {
             // step 1: assemble local matrix
 
             // initialize local matrices
-            let num_node = dom.elem_node_num[eid];
+            let num_node = dom.elem_node[eid];
             let mut bx_loc = vec![0.0; num_node];
             let mut by_loc = vec![0.0; num_node];
 

@@ -179,7 +179,7 @@ impl VectorDomain {
     }
 
     pub fn compute_quad_unknown_domain(&self, dom: &Domain, eid: usize, qid: usize) -> (f64, f64) {
-        let num_node = dom.elem_node_num[eid];
+        let num_node = dom.elem_node[eid];
         match num_node {
             3 => {
                 let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
@@ -210,7 +210,7 @@ impl VectorDomain {
     }
 
     pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, eid: usize, qid: usize) -> (f64, f64) {
-        let num_node = bnd.elem_node_num[eid];
+        let num_node = bnd.elem_node[eid];
         match num_node {
             2 => {
                 let n = lin2_eval(A_LIN2[qid]);
@@ -258,7 +258,7 @@ impl VectorDomain {
     }
 
     pub fn compute_quad_unknown_prev(&self, dom: &Domain, eid: usize, qid: usize) -> (f64, f64) {
-        let num_node = dom.elem_node_num[eid];
+        let num_node = dom.elem_node[eid];
         match num_node {
             3 => {
                 let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);

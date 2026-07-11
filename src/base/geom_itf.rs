@@ -18,7 +18,8 @@ pub struct Interface {
     // element data
     // elem_node_id[eid] is arranged in CCW order for each domain
     pub num_elem: usize,                // number of 1d elements
-    pub elem_node_num: Vec<usize>,      // type of elements (2 - lin)
+    pub elem_type: Vec<usize>,         // type of element (2 - P1 lin)
+    pub elem_node: Vec<usize>,         // number of nodes (2 - P1 lin)
     pub elem_node1_id: Vec<Vec<usize>>, // node ids of elements for domain 1
     pub elem_node2_id: Vec<Vec<usize>>, // node ids of elements for domain 2
 
@@ -79,7 +80,8 @@ impl Interface {
         // get element data
         for &elem_mid in itf.elem_itf_mesh_id.iter() {
             // element type - copy from mesh
-            itf.elem_node_num.push(mesh.elm1d_node_num[elem_mid]);
+            itf.elem_type.push(mesh.elm1d_type[elem_mid]);
+            itf.elem_node.push(mesh.elm1d_node[elem_mid]);
 
             // node ids - orient to match parent domain element edge traversal
             let mesh_nid = &mesh.elm1d_node_id[elem_mid];

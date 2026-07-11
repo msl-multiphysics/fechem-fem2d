@@ -45,7 +45,7 @@ impl OpSclDomTime {
             // step 1: assemble local mass matrix
 
             // initialize local matrix
-            let num_node = dom.elem_node_num[eid];
+            let num_node = dom.elem_node[eid];
             let mut a_loc = vec![vec![0.0; num_node]; num_node];
             let mut b_loc = vec![vec![0.0; num_node]; num_node];
 

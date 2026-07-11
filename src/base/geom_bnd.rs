@@ -16,7 +16,8 @@ pub struct Boundary {
 
     // element data
     pub num_elem: usize,               // number of 1d elements
-    pub elem_node_num: Vec<usize>,     // type of elements (2 - lin)
+    pub elem_type: Vec<usize>,         // type of element (2 - P1 lin)
+    pub elem_node: Vec<usize>,         // number of nodes (2 - P1 lin)
     pub elem_node_id: Vec<Vec<usize>>, // node ids of elements
 
     // boundary-mesh mapping
@@ -72,7 +73,8 @@ impl Boundary {
         // get element data
         for &elem_mid in bnd.elem_bnd_mesh_id.iter() {
             // element type - copy from mesh
-            bnd.elem_node_num.push(mesh.elm1d_node_num[elem_mid]);
+            bnd.elem_type.push(mesh.elm1d_type[elem_mid]);
+            bnd.elem_node.push(mesh.elm1d_node[elem_mid]);
 
             // node ids - orient to match parent domain element edge traversal
             let mesh_nid = &mesh.elm1d_node_id[elem_mid];

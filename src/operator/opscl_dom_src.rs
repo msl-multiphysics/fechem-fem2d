@@ -46,7 +46,7 @@ impl OperatorBase for OpSclDomSource {
             // step 1: assemble local vector
 
             // initialize local vectors
-            let num_node = dom.elem_node_num[eid];
+            let num_node = dom.elem_node[eid];
             let mut b_loc = vec![0.0; num_node];
 
             // get integral data

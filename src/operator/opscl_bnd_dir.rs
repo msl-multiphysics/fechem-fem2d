@@ -37,7 +37,7 @@ impl OperatorBase for OpSclBndDirichlet {
         // iterate over elements
         for eid in 0..bnd.num_elem {
             // step 1: get local nodes
-            let num_node = bnd.elem_node_num[eid];
+            let num_node = bnd.elem_node[eid];
             let node_id = &bnd.elem_node_id[eid];
 
             // step 2: assemble global matrix and vector

@@ -630,6 +630,7 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
     }
 
     let num_elm2d = cells.len();
+    let mut elm2d_type = Vec::with_capacity(num_elm2d);
     let mut elm2d_node = Vec::with_capacity(num_elm2d);
     let mut elm2d_node_id = Vec::with_capacity(num_elm2d);
     let mut raw_reg2d_tags = Vec::with_capacity(num_elm2d);
@@ -642,7 +643,20 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
                 message: format!("degenerate 2D element at index {ci}"),
             });
         }
-        elm2d_node.push(verts.len());
+        let (elm_type, elm_node) = match verts.len() {
+            3 => (13, 3), // P1 triangle
+            4 => (14, 4), // P1 quad
+            n => {
+                return Err(FEChemError::InvalidGmsh {
+                    caller: CALLER.to_string(),
+                    message: format!(
+                        "unsupported 2D element with {n} nodes at index {ci} (P1 tri/quad only)"
+                    ),
+                });
+            }
+        };
+        elm2d_type.push(elm_type);
+        elm2d_node.push(elm_node);
         elm2d_node_id.push(verts.clone());
         raw_reg2d_tags.push(*phys);
     }
@@ -655,6 +669,7 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
     }
 
     let num_elm1d = lines.len();
+    let mut elm1d_type = Vec::with_capacity(num_elm1d);
     let mut elm1d_node = Vec::with_capacity(num_elm1d);
     let mut elm1d_node_id = Vec::with_capacity(num_elm1d);
     let mut raw_reg1d_tags = Vec::with_capacity(num_elm1d);
@@ -668,6 +683,7 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
                 message: format!("degenerate 1D element at index {ei}"),
             });
         }
+        elm1d_type.push(2); // P1 line
         elm1d_node.push(2);
         elm1d_node_id.push(vec![v0, v1]);
         raw_reg1d_tags.push(phys);
@@ -686,12 +702,14 @@ fn assemble_mesh(parsed: ParsedGmsh) -> Result<Mesh, FEChemError> {
         node_y: vert_y,
         num_elm2d,
         num_reg2d,
-        elm2d_node_num: elm2d_node,
+        elm2d_type,
+        elm2d_node,
         elm2d_node_id,
         reg2d_elem_id,
         num_elm1d,
         num_reg1d,
-        elm1d_node_num: elm1d_node,
+        elm1d_type,
+        elm1d_node,
         elm1d_node_id,
         reg1d_elem_id,
     })
@@ -707,9 +725,11 @@ mod tests {
     fn assert_mesh_topology(mesh: &Mesh) {
         assert_eq!(mesh.node_x.len(), mesh.num_node);
         assert_eq!(mesh.node_y.len(), mesh.num_node);
-        assert_eq!(mesh.elm2d_node_num.len(), mesh.num_elm2d);
+        assert_eq!(mesh.elm2d_type.len(), mesh.num_elm2d);
+        assert_eq!(mesh.elm2d_node.len(), mesh.num_elm2d);
         assert_eq!(mesh.elm2d_node_id.len(), mesh.num_elm2d);
-        assert_eq!(mesh.elm1d_node_num.len(), mesh.num_elm1d);
+        assert_eq!(mesh.elm1d_type.len(), mesh.num_elm1d);
+        assert_eq!(mesh.elm1d_node.len(), mesh.num_elm1d);
         assert_eq!(mesh.elm1d_node_id.len(), mesh.num_elm1d);
         assert_eq!(mesh.reg2d_elem_id.len(), mesh.num_reg2d);
         assert_eq!(mesh.reg1d_elem_id.len(), mesh.num_reg1d);
@@ -721,8 +741,18 @@ mod tests {
         assert_eq!(reg1d_count, mesh.num_elm1d);
 
         for (ei, nodes) in mesh.elm2d_node_id.iter().enumerate() {
-            assert_eq!(nodes.len(), mesh.elm2d_node_num[ei]);
-            assert!(nodes.len() == 3 || nodes.len() == 4);
+            assert_eq!(nodes.len(), mesh.elm2d_node[ei]);
+            match mesh.elm2d_type[ei] {
+                13 => {
+                    assert_eq!(nodes.len(), 3);
+                    assert_eq!(mesh.elm2d_node[ei], 3);
+                }
+                14 => {
+                    assert_eq!(nodes.len(), 4);
+                    assert_eq!(mesh.elm2d_node[ei], 4);
+                }
+                t => panic!("unexpected 2D element type {t} at index {ei}"),
+            }
             for &nid in nodes {
                 assert!(nid < mesh.num_node);
             }
@@ -730,7 +760,8 @@ mod tests {
 
         for (ei, nodes) in mesh.elm1d_node_id.iter().enumerate() {
             assert_eq!(nodes.len(), 2);
-            assert_eq!(mesh.elm1d_node_num[ei], 2);
+            assert_eq!(mesh.elm1d_type[ei], 2);
+            assert_eq!(mesh.elm1d_node[ei], 2);
             for &nid in nodes {
                 assert!(nid < mesh.num_node);
             }

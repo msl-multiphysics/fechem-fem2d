@@ -48,7 +48,7 @@ impl OperatorBase for OpSclBndNeumannDiffusion {
             // step 1: assemble local vector
 
             // initialize local vectors
-            let num_node = bnd.elem_node_num[eid];
+            let num_node = bnd.elem_node[eid];
             let mut b_loc = vec![0.0; num_node];
 
             // get integral data

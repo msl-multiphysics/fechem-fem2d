@@ -49,14 +49,14 @@ impl OperatorBase for OpSclDomDiffusion {
             // step 1: assemble local matrix
 
             // initialize local matrices
-            let num_node = dom.elem_node_num[eid];
+            let num_node = dom.elem_node[eid];
             let mut a_loc = vec![vec![0.0; num_node]; num_node];
 
             // get integral data
             let num_quad = itg.num_quad[eid];
             let jac_det = &itg.jac_det[eid];
-            let gradn_x = &itg.gradn_x[eid];
-            let gradn_y = &itg.gradn_y[eid];
+            let gradn_x = &itg.quad_gnx[eid];
+            let gradn_y = &itg.quad_gny[eid];
 
             // assemble local matrix
             match num_node {

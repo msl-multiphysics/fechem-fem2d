@@ -75,7 +75,7 @@ impl OperatorBase for OpSclDomPspg {
             // step 1: assemble local matrix and vector
 
             // initialize local matrices
-            let num_node = dom.elem_node_num[eid];
+            let num_node = dom.elem_node[eid];
             let mut ax_loc = vec![vec![0.0; num_node]; num_node];  // x-component of velocity
             let mut ay_loc = vec![vec![0.0; num_node]; num_node];  // y-component of velocity
             let mut ap_loc = vec![vec![0.0; num_node]; num_node];  // pressure
@@ -85,8 +85,8 @@ impl OperatorBase for OpSclDomPspg {
             let num_quad = itg.num_quad[eid];
             let jac_det = &itg.jac_det[eid];
             let jac_met = &itg.jac_met[eid];
-            let gradn_x = &itg.gradn_x[eid];
-            let gradn_y = &itg.gradn_y[eid];
+            let gradn_x = &itg.quad_gnx[eid];
+            let gradn_y = &itg.quad_gny[eid];
 
             // assemble local matrix
             match num_node {
