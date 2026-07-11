@@ -1,10 +1,11 @@
 use crate::base::error::FEChemError;
 use crate::base::geom_bnd::Boundary;
 use crate::base::geom_dom::Domain;
+use crate::base::itg_bnd::IntegralBoundary;
+use crate::base::itg_dom::IntegralDomain;
 use crate::base::vars::Variables;
 use crate::base::write_csv::write_scldom_csv;
 use crate::base::write_vtu::write_scldom_vtu;
-use crate::shape::prelude::*;
 use faer::Col;
 
 pub enum ScalarDomainType {
@@ -34,9 +35,9 @@ pub struct ScalarDomain {
 
     // values
     pub scl_type: ScalarDomainType,
-    pub node_value: Vec<f64>, // [nid] -> values at nodes
-    pub node_prev: Vec<f64>,  // [nid] -> values at previous time step
-    pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
+    pub node_dir: Vec<bool>,        // [nid] -> true if dirichlet BC is applied
+    pub node_value: Vec<f64>,       // [nid] -> values at nodes
+    pub node_value_prev: Vec<f64>,  // [nid] -> values at previous time step
 
     // output file
     pub file_name: String, // path to file without extension
@@ -52,10 +53,10 @@ impl ScalarDomain {
 
         // set values
         scldom.scl_type = ScalarDomainType::Constant { value: value_const };
-        scldom.node_value = vec![value_const; dom.num_node];
-        scldom.node_prev = vec![value_const; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
-
+        scldom.node_value = vec![value_const; dom.num_node];
+        scldom.node_value_prev = vec![value_const; dom.num_node];
+        
         // set outputs if file path is not empty
         if file_path == "" {
             scldom.file_name = String::new();
@@ -82,9 +83,9 @@ impl ScalarDomain {
             func: value_func,
             scldom_ids: scldom_ids,
         };
-        scldom.node_value = vec![0.0; dom.num_node];
-        scldom.node_prev = vec![0.0; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
+        scldom.node_value = vec![0.0; dom.num_node];
+        scldom.node_value_prev = vec![0.0; dom.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -108,9 +109,9 @@ impl ScalarDomain {
 
         // set values
         scldom.scl_type = ScalarDomainType::Unknown { start: 0 };
-        scldom.node_value = vec![value_init; dom.num_node];
-        scldom.node_prev = vec![value_init; dom.num_node];
         scldom.node_dir = vec![false; dom.num_node];
+        scldom.node_value = vec![value_init; dom.num_node];
+        scldom.node_value_prev = vec![value_init; dom.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -149,17 +150,19 @@ impl ScalarDomain {
             }
             ScalarDomainType::Unknown { .. } => {
                 let dom = &vars.dom[self.dom_id];
-                return self.compute_quad_unknown_domain(dom, eid, qid);
+                let itgdom = &vars.itg_dom[self.dom_id];
+                return self.compute_quad_unknown_domain(dom, itgdom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
                 // get domain
                 let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
 
                 // get scalar values
                 let mut val = Vec::new();
                 for &scldom_id in scldom_ids {
                     let scldom_sub = &vars.scl_dom[scldom_id];
-                    let val_sub = scldom_sub.compute_quad_unknown_domain(dom, eid, qid);
+                    let val_sub = scldom_sub.compute_quad_unknown_domain(dom, itgdom, eid, qid);
                     val.push(val_sub);
                 }
 
@@ -169,49 +172,27 @@ impl ScalarDomain {
         }
     }
 
-    pub fn compute_quad_unknown_domain(&self, dom: &Domain, eid: usize, qid: usize) -> f64 {
+    pub fn compute_quad_unknown_domain(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> f64 {
         let num_node = dom.elem_node[eid];
-        match num_node {
-            3 => {
-                let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = dom.elem_node_id[eid][v];
-                    val += n[v] * self.node_value[nid];
-                }
-                return val;
-            }
-            4 => {
-                let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = dom.elem_node_id[eid][v];
-                    val += n[v] * self.node_value[nid];
-                }
-                return val;
-            }
-            _ => {
-                panic!("Unsupported number of nodes: {}", num_node);
-            }
+        let mut value_quad = 0.0;
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let value_node = self.node_value[nid];
+            value_quad += itgdom.quad_n[eid][qid][v] * value_node;
         }
+        return value_quad;
     }
 
-    pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, eid: usize, qid: usize) -> f64 {
+    pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, itgbnd: &IntegralBoundary, eid: usize, qid: usize) -> f64 {
         let num_node = bnd.elem_node[eid];
-        match num_node {
-            2 => {
-                let n = lin2_eval(A_LIN2[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = bnd.elem_node_id[eid][v];
-                    val += n[v] * self.node_value[nid];
-                }
-                return val;
-            }
-            _ => {
-                panic!("Unsupported number of nodes: {}", num_node);
-            }
+        let mut value_quad = 0.0;
+        for v in 0..num_node {
+            let nid_bnd = bnd.elem_node_id[eid][v];
+            let nid_dom = bnd.node_bnd_dom_id[nid_bnd];
+            let value_node = self.node_value[nid_dom];
+            value_quad += itgbnd.quad_n[eid][qid][v] * value_node;
         }
+        return value_quad;
     }
 
     pub fn compute_quad_prev(&self, vars: &Variables, eid: usize, qid: usize, t_prev: f64) -> f64 {
@@ -222,17 +203,19 @@ impl ScalarDomain {
             }
             ScalarDomainType::Unknown { .. } => {
                 let dom = &vars.dom[self.dom_id];
-                return self.compute_quad_unknown_prev(dom, eid, qid);
+                let itgdom = &vars.itg_dom[self.dom_id];
+                return self.compute_quad_unknown_domain_prev(dom, itgdom, eid, qid);
             }
             ScalarDomainType::Function { func, scldom_ids } => {
                 // get domain
                 let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
 
                 // get scalar values
                 let mut val = Vec::new();
                 for &scldom_id in scldom_ids {
                     let scldom_sub = &vars.scl_dom[scldom_id];
-                    let val_sub = scldom_sub.compute_quad_unknown_prev(dom, eid, qid);
+                    let val_sub = scldom_sub.compute_quad_unknown_domain_prev(dom, itgdom, eid, qid);
                     val.push(val_sub);
                 }
 
@@ -242,31 +225,15 @@ impl ScalarDomain {
         }
     }
 
-    pub fn compute_quad_unknown_prev(&self, dom: &Domain, eid: usize, qid: usize) -> f64 {
+    pub fn compute_quad_unknown_domain_prev(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> f64 {
         let num_node = dom.elem_node[eid];
-        match num_node {
-            3 => {
-                let n = tri3_eval(A_TRI3[qid], B_TRI3[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = dom.elem_node_id[eid][v];
-                    val += n[v] * self.node_prev[nid];
-                }
-                return val;
-            }
-            4 => {
-                let n = quad4_eval(A_QUAD4[qid], B_QUAD4[qid]);
-                let mut val = 0.0;
-                for v in 0..num_node {
-                    let nid = dom.elem_node_id[eid][v];
-                    val += n[v] * self.node_prev[nid];
-                }
-                return val;
-            }
-            _ => {
-                panic!("Unsupported number of nodes: {}", num_node);
-            }
+        let mut value_quad = 0.0;
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let value_node = self.node_value_prev[nid];
+            value_quad += itgdom.quad_n[eid][qid][v] * value_node;
         }
+        return value_quad;
     }
 
     pub fn update_unknown(&mut self, dom: &Domain, x_vec: &Col<f64>) {
@@ -289,7 +256,7 @@ impl ScalarDomain {
     pub fn update_prev(&mut self) {
         match self.scl_type {
             ScalarDomainType::Unknown { .. } => {
-                self.node_prev.copy_from_slice(&self.node_value);
+                self.node_value_prev.copy_from_slice(&self.node_value);
             }
             _ => {
                 return;

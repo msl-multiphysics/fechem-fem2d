@@ -21,9 +21,9 @@ pub struct ScalarInterface {
 
     // values
     pub scl_type: ScalarInterfaceType,
-    pub node_value: Vec<f64>, // [nid] -> values at nodes
-    pub node_prev: Vec<f64>,  // [nid] -> values at previous time step
     pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
+    pub node_value: Vec<f64>, // [nid] -> values at nodes
+    pub node_value_prev: Vec<f64>,  // [nid] -> values at previous time step
 
     // output file
     pub file_name: String, // path to file without extension
@@ -39,9 +39,9 @@ impl ScalarInterface {
 
         // set values
         sclitf.scl_type = ScalarInterfaceType::Constant { value: value_const };
-        sclitf.node_value = vec![value_const; itf.num_node];
-        sclitf.node_prev = vec![value_const; itf.num_node];
         sclitf.node_dir = vec![false; itf.num_node];
+        sclitf.node_value = vec![value_const; itf.num_node];
+        sclitf.node_value_prev = vec![value_const; itf.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -67,9 +67,9 @@ impl ScalarInterface {
 
         // set values
         sclitf.scl_type = ScalarInterfaceType::Unknown { start: 0 };
-        sclitf.node_value = vec![value_init; itf.num_node];
-        sclitf.node_prev = vec![value_init; itf.num_node];
         sclitf.node_dir = vec![false; itf.num_node];
+        sclitf.node_value = vec![value_init; itf.num_node];
+        sclitf.node_value_prev = vec![value_init; itf.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -104,7 +104,7 @@ impl ScalarInterface {
     pub fn update_prev(&mut self) {
         match self.scl_type {
             ScalarInterfaceType::Unknown { .. } => {
-                self.node_prev.copy_from_slice(&self.node_value);
+                self.node_value_prev.copy_from_slice(&self.node_value);
             }
             _ => {
                 return;

@@ -29,9 +29,9 @@ pub struct VectorBoundary {
 
     // values
     pub vec_type: VectorBoundaryType,
+    pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
     pub node_value_x: Vec<f64>, // [nid] -> x values at nodes
     pub node_value_y: Vec<f64>, // [nid] -> y values at nodes
-    pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
 
     // output file
     pub file_name: String, // path to file without extension
@@ -47,9 +47,9 @@ impl VectorBoundary {
 
         // set values
         vecbnd.vec_type = VectorBoundaryType::Constant { value_x: value_const_x, value_y: value_const_y };
+        vecbnd.node_dir = vec![false; bnd.num_node];
         vecbnd.node_value_x = vec![value_const_x; bnd.num_node];
         vecbnd.node_value_y = vec![value_const_y; bnd.num_node];
-        vecbnd.node_dir = vec![false; bnd.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -77,9 +77,9 @@ impl VectorBoundary {
             func: value_func,
             scldom_ids: scldom_ids,
         };
+        vecbnd.node_dir = vec![false; bnd.num_node];
         vecbnd.node_value_x = vec![0.0; bnd.num_node];
         vecbnd.node_value_y = vec![0.0; bnd.num_node];
-        vecbnd.node_dir = vec![false; bnd.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -117,12 +117,13 @@ impl VectorBoundary {
             VectorBoundaryType::Function { func, scldom_ids } => {
                 // get boundary
                 let bnd = &vars.bnd[self.bnd_id];
+                let itgbnd = &vars.itg_bnd[self.bnd_id];
 
                 // get scalar values
                 let mut val = Vec::new();
                 for &scldom_id in scldom_ids {
                     let scldom_sub = &vars.scl_dom[scldom_id];
-                    let val_sub = scldom_sub.compute_quad_unknown_boundary(bnd, eid, qid);
+                    let val_sub = scldom_sub.compute_quad_unknown_boundary(bnd, itgbnd, eid, qid);
                     val.push(val_sub);
                 }
 

@@ -22,7 +22,7 @@ impl Shape1D for Lin2 {
             0.5 * (1.0 + a)
         ]
     }
-    fn grad(&self, a: f64) -> Vec<f64> {
+    fn grad(&self, _a: f64) -> Vec<f64> {
         vec![
             -0.5,
             0.5

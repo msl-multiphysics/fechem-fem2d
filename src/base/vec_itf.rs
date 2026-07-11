@@ -21,11 +21,11 @@ pub struct VectorInterface {
 
     // values
     pub vec_type: VectorInterfaceType,
-    pub node_value_x: Vec<f64>, // [nid] -> x values at nodes
-    pub node_value_y: Vec<f64>, // [nid] -> y values at nodes
-    pub node_prev_x: Vec<f64>,  // [nid] -> x values at previous time step
-    pub node_prev_y: Vec<f64>,  // [nid] -> y values at previous time step
-    pub node_dir: Vec<bool>,  // [nid] -> true if dirichlet BC is applied
+    pub node_dir: Vec<bool>,          // [nid] -> true if dirichlet BC is applied
+    pub node_value_x: Vec<f64>,       // [nid] -> x values at nodes
+    pub node_value_y: Vec<f64>,       // [nid] -> y values at nodes
+    pub node_value_prev_x: Vec<f64>,  // [nid] -> x values at previous time step
+    pub node_value_prev_y: Vec<f64>,  // [nid] -> y values at previous time step
 
     // output file
     pub file_name: String, // path to file without extension
@@ -41,11 +41,11 @@ impl VectorInterface {
 
         // set values
         vecitf.vec_type = VectorInterfaceType::Constant { value_x: value_const_x, value_y: value_const_y };
+        vecitf.node_dir = vec![false; itf.num_node];
         vecitf.node_value_x = vec![value_const_x; itf.num_node];
         vecitf.node_value_y = vec![value_const_y; itf.num_node];
-        vecitf.node_prev_x = vec![value_const_x; itf.num_node];
-        vecitf.node_prev_y = vec![value_const_y; itf.num_node];
-        vecitf.node_dir = vec![false; itf.num_node];
+        vecitf.node_value_prev_x = vec![value_const_x; itf.num_node];
+        vecitf.node_value_prev_y = vec![value_const_y; itf.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -71,11 +71,11 @@ impl VectorInterface {
 
         // set values
         vecitf.vec_type = VectorInterfaceType::Unknown { start: 0 };
+        vecitf.node_dir = vec![false; itf.num_node];
         vecitf.node_value_x = vec![value_init_x; itf.num_node];
         vecitf.node_value_y = vec![value_init_y; itf.num_node];
-        vecitf.node_prev_x = vec![value_init_x; itf.num_node];
-        vecitf.node_prev_y = vec![value_init_y; itf.num_node];
-        vecitf.node_dir = vec![false; itf.num_node];
+        vecitf.node_value_prev_x = vec![value_init_x; itf.num_node];
+        vecitf.node_value_prev_y = vec![value_init_y; itf.num_node];
 
         // set outputs if file path is not empty
         if file_path == "" {
@@ -112,8 +112,8 @@ impl VectorInterface {
     pub fn update_prev(&mut self) {
         match self.vec_type {
             VectorInterfaceType::Unknown { .. } => {
-                self.node_prev_x.copy_from_slice(&self.node_value_x);
-                self.node_prev_y.copy_from_slice(&self.node_value_y);
+                self.node_value_prev_x.copy_from_slice(&self.node_value_x);
+                self.node_value_prev_y.copy_from_slice(&self.node_value_y);
             }
             _ => {
                 return;

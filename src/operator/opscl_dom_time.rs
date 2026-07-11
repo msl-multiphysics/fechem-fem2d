@@ -113,7 +113,7 @@ impl OpSclDomTime {
                 let mut b_contrib = 0.0;
                 for j in 0..num_node {
                     let nid_j = node_id[j];
-                    b_contrib += b_loc[v][j] * unk.node_prev[nid_j];
+                    b_contrib += b_loc[v][j] * unk.node_value_prev[nid_j];
                 }
                 self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, b_contrib);
 
