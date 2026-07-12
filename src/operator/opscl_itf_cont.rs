@@ -41,6 +41,21 @@ impl OpSclItfContinuity {
 
 impl OperatorBase for OpSclItfContinuity {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, factor: f64) {
+        // applies the continuity constraint
+        // ((c1 - c2), l)_itf
+        // c1 and c2 are approximated with basis functions w_c
+        // l is approximated with basis functions w_l
+        // 
+        // compute variations wrt each domain
+        // c1: +(w_c, l)_itf
+        // c2: -(w_c, l)_itf
+        // l: +((c1 - c2), w_l)_itf
+        //
+        // let A (in Ax = b) be the RHS of the PDE and b in the LHS
+        // c1: add +(w_c, l)_itf to A
+        // c2: add -(w_c, l)_itf to A
+        // l: add +((c1 - c2), w_l)_itf to A
+
         // get objects
         let itf = &vars.itf[self.itf_id];
         let itg = &vars.itg_itf[self.itf_id];

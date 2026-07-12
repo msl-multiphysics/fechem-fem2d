@@ -26,7 +26,7 @@ pub use crate::solver::solver_qr::*;
 
 // steady files
 pub use crate::steady::steady_base::*;
-pub use crate::steady::steady_flow::*;
+// pub use crate::steady::steady_flow::*;
 pub use crate::steady::steady_heat::*;
 
 // transient files
