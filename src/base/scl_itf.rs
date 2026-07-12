@@ -87,6 +87,18 @@ impl ScalarInterface {
 
     // TODO: implement write
 
+    pub fn compute_quad(&self, _eid: usize, _qid: usize, _t: f64) -> f64 {
+        // evaluate based on type
+        match &self.scl_type {
+            ScalarInterfaceType::Constant { value } => {
+                return *value;
+            }
+            ScalarInterfaceType::Unknown { .. } => {
+                panic!("Expected constant scalar interface type.");
+            }
+        }
+    }
+
     pub fn update_unknown(&mut self, itf: &Interface, x_vec: &Col<f64>) {
         match self.scl_type {
             ScalarInterfaceType::Unknown { start } => {

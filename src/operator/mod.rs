@@ -5,6 +5,7 @@ pub mod prelude;
 // scalar boundary operators
 pub mod opscl_bnd_neu;
 pub mod opscl_bnd_dir;
+pub mod opscl_bnd_trn;
 
 // scalar domain operators
 pub mod opscl_dom_diff;
@@ -15,6 +16,7 @@ pub mod opscl_dom_pspg;
 
 // scalar interface operators
 pub mod opscl_itf_cont;
+pub mod opscl_itf_trn;
 
 // vector domain operators
 pub mod opvec_dom_adv;

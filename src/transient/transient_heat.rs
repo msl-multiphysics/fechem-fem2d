@@ -21,16 +21,23 @@ pub struct TransientHeat {
     pub temp_temp: HashMap<usize, usize>, // temperature
     pub hflx_bnd: Vec<usize>,             // bnd with heat flux BC
     pub hflx_hflx: HashMap<usize, usize>, // heat flux
+    pub htrn_bnd: Vec<usize>,             // bnd with heat transfer BC
+    pub htrn_htrn: HashMap<usize, usize>,  // heat transfer coefficient
+    pub htrn_text: HashMap<usize, usize>,  // external temperature
 
     // interface data
-    pub cont_itf: Vec<usize>,            // itf with continuity BC
-    pub cont_lmd: HashMap<usize, usize>, // continuity
+    pub cont_itf: Vec<usize>,             // itf with continuity BC
+    pub cont_lmd: HashMap<usize, usize>,  // continuity
+    pub hres_itf: Vec<usize>,             // itf with heat resistance BC
+    pub hres_htrn: HashMap<usize, usize>, // heat transfer coefficient
 
     // operators
     pub oper_itr: Vec<(OpSclDomTime, OpSclDomDiffusion, OpSclDomSource)>,
     pub oper_bnd_temp: Vec<OpSclBndDirichlet>,
     pub oper_bnd_hflx: Vec<OpSclBndNeumann>,
+    pub oper_bnd_htrn: Vec<OpSclBndTransfer>,
     pub oper_cont_itf: Vec<OpSclItfContinuity>,
+    pub oper_hres_itf: Vec<OpSclItfTransfer>,
 }
 
 impl TransientHeat {
@@ -56,9 +63,20 @@ impl TransientHeat {
         self.hflx_hflx.insert(bnd_id, hflx_id);
     }
 
+    pub fn add_htrn_bnd(&mut self, bnd_id: usize, htrn_id: usize, text_id: usize) {
+        self.htrn_bnd.push(bnd_id);
+        self.htrn_htrn.insert(bnd_id, htrn_id);
+        self.htrn_text.insert(bnd_id, text_id);
+    }
+
     pub fn add_cont_itf(&mut self, itf_id: usize, lmd_id: usize) {
         self.cont_itf.push(itf_id);
         self.cont_lmd.insert(itf_id, lmd_id);
+    }
+
+    pub fn add_hres_itf(&mut self, itf_id: usize, htrn_id: usize) {
+        self.hres_itf.push(itf_id);
+        self.hres_htrn.insert(itf_id, htrn_id);
     }
 }
 
@@ -152,6 +170,16 @@ impl TransientBase for TransientHeat {
             self.oper_bnd_hflx.push(oper_neu);
         }
 
+        // boundary transfer operator
+        for &bnd_id in &self.htrn_bnd {
+            let dom_id = vars.bnd[bnd_id].dom_id;
+            let dom_temp_id = self.itr_temp[&dom_id];
+            let bnd_htrn_id = self.htrn_htrn[&bnd_id];
+            let bnd_text_id = self.htrn_text[&bnd_id];
+            let oper_htrn = OpSclBndTransfer::new(bnd_id, bnd_htrn_id, bnd_text_id, dom_temp_id);
+            self.oper_bnd_htrn.push(oper_htrn);
+        }
+
         // interface continuity operator
         for &itf_id in &self.cont_itf {
             let dom1_id = vars.itf[itf_id].dom1_id;
@@ -161,6 +189,17 @@ impl TransientBase for TransientHeat {
             let lmd_id = self.cont_lmd[&itf_id];
             let oper_cont = OpSclItfContinuity::new(itf_id, lmd_id, dom_temp1_id, dom_temp2_id);
             self.oper_cont_itf.push(oper_cont);
+        }
+
+        // interface heat resistance operator
+        for &itf_id in &self.hres_itf {
+            let dom1_id = vars.itf[itf_id].dom1_id;
+            let dom2_id = vars.itf[itf_id].dom2_id;
+            let dom_temp1_id = self.itr_temp[&dom1_id];
+            let dom_temp2_id = self.itr_temp[&dom2_id];
+            let itf_htrn_id = self.hres_htrn[&itf_id];
+            let oper_hres = OpSclItfTransfer::new(itf_id, itf_htrn_id, dom_temp1_id, dom_temp2_id);
+            self.oper_hres_itf.push(oper_hres);
         }
     }
 
@@ -183,10 +222,16 @@ impl TransientBase for TransientHeat {
         for oper_neu in &self.oper_bnd_hflx {
             oper_neu.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
+        for oper_htrn in &self.oper_bnd_htrn {
+            oper_htrn.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+        }
 
         // assemble interface data
         for oper_cont in &self.oper_cont_itf {
             oper_cont.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+        }
+        for oper_hres in &self.oper_hres_itf {
+            oper_hres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
 
         // create sparse matrix from triplet

@@ -127,6 +127,13 @@ impl Variables {
         Ok(sclbnd_id)
     }
 
+    pub fn add_sclitf_con(&mut self, itf_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
+        let sclitf_id = self.scl_itf.len();
+        let sclitf = ScalarInterface::new_from_constant(sclitf_id, &self.itf[itf_id], value_const, file_path)?;
+        self.scl_itf.push(sclitf);
+        Ok(sclitf_id)
+    }
+
     pub fn add_sclitf_unk(&mut self, itf_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
         let sclitf_id = self.scl_itf.len();
         let sclitf = ScalarInterface::new_from_unknown(sclitf_id, &self.itf[itf_id], value_init, file_path)?;
