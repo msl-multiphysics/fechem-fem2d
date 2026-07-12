@@ -39,10 +39,10 @@ impl OpVecDomAdvection {
 impl OperatorBase for OpVecDomAdvection {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the advective term
-        // -(den * v_j * grad(v_i), w)_dom
+        // -(den * v_j . grad(v_i), w)_dom
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // add -(den * v_j * grad(v_i), w)_dom to A
+        // add -(den * v_j . grad(v_i), w)_dom to A
         // v_j is lagged by 1 iteration
         
         // get objects

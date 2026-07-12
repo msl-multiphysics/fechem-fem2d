@@ -17,7 +17,7 @@ impl OpSclBndNeumann {
     pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OpSclBndNeumann {
         // applies a Neumann BC
         // d(m_i * c_i)/dt = -div(N_i) + R_i
-        // N_i * n = F_i
+        // N_i . n = F_i
         // 
         // flx - prescribed normal outward flux (F_i)
         // unk - unknown scalar (c_i)
@@ -38,10 +38,10 @@ impl OpSclBndNeumann {
 impl OperatorBase for OpSclBndNeumann {
     fn apply(&self, vars: &Variables, _a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the diffusion term
-        // -(div(N, w)_dom = +(N, grad(w))_dom - (N * n, w)_bnd
+        // -(div(N, w)_dom = +(N, grad(w))_dom - (N . n, w)_bnd
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // add -(N * n, w)_bnd to A -> add -(F, w)_bnd to A -> add +(F, w)_bnd to b
+        // add -(N . n, w)_bnd to A -> add -(F, w)_bnd to A -> add +(F, w)_bnd to b
         
         // get objects
         let bnd = &vars.bnd[self.bnd_id];

@@ -39,7 +39,7 @@ impl OpSclDomDiffusion {
 impl OperatorBase for OpSclDomDiffusion {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the diffusion term
-        // +(div(D * grad(c), w)_dom = -(D * grad(c), grad(w))_dom + (D * grad(c) * n, w)_bnd
+        // +(div(D * grad(c), w)_dom = -(D * grad(c), grad(w))_dom + (D * grad(c) . n, w)_bnd
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
         // add -(D * grad(c), grad(w))_dom to A

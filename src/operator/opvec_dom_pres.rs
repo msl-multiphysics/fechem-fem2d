@@ -36,10 +36,10 @@ impl OpVecDomPressure {
 impl OperatorBase for OpVecDomPressure {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, factor: f64) {
         // applies the weak form of the pressure gradient term
-        // -(grad(p), w)_dom
+        // -(grad(p), w)_dom = +(p, div(w))_dom - (pw . n)_bnd
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // add -(grad(p), w)_dom to A
+        // add +(p, div(w))_dom to A
     
         // get objects
         let dom = &vars.dom[self.dom_id];
@@ -65,11 +65,11 @@ impl OperatorBase for OpVecDomPressure {
 
             // assemble local matrix
             for qid in 0..num_quad {
-                let coeff = -factor * quad_w[qid] * jac_det[qid];
+                let coeff = factor * quad_w[qid] * jac_det[qid];
                 for v in 0..num_node {
                     for j in 0..num_node {
-                        ax_loc[v][j] += coeff * quad_gnx[qid][j] * quad_n[qid][v];
-                        ay_loc[v][j] += coeff * quad_gny[qid][j] * quad_n[qid][v];
+                        ax_loc[v][j] += coeff * quad_n[qid][j] * quad_gnx[qid][v];
+                        ay_loc[v][j] += coeff * quad_n[qid][j] * quad_gny[qid][v];
                     }
                 }
             }

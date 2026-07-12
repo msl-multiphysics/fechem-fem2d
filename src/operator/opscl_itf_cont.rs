@@ -18,7 +18,7 @@ impl OpSclItfContinuity {
     pub fn new(itf_id: usize, lmd_id: usize, unk1_id: usize, unk2_id: usize) -> OpSclItfContinuity {
         // applies value and flux continuity at the interface
         // c1 = c2
-        // N1 * n = N2 * n
+        // N1 . n = N2 . n
         // 
         // lmd - lagrange multiplier
         // unk1 - unknown scalar on domain 1 (c1)

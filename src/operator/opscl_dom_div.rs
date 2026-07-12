@@ -38,7 +38,7 @@ impl OpSclDomDivergence {
 impl OperatorBase for OpSclDomDivergence {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the divergence term
-        // -(div(rho * v), w)_dom = +(rho * v, grad(w))_dom - (rho * v * n, w)_bnd
+        // -(div(rho * v), w)_dom = +(rho * v, grad(w))_dom - (rho * v . n, w)_bnd
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
         // add +(rho * v, grad(w))_dom to A
