@@ -1,6 +1,5 @@
 use crate::base::vars::Variables;
 use crate::operator::oper_base::OperatorBase;
-use crate::shape::prelude::*;
 use faer::Col;
 use faer::sparse::Triplet;
 
@@ -16,29 +15,36 @@ pub struct OpVecDomPressure {
 
 impl OpVecDomPressure {
     pub fn new(dom_id: usize, unk_id: usize, pres_id: usize) -> OpVecDomPressure {
-        // adds -grad(pres) to RHS
-        // LHS is 0 for steady state or d(unk)/dt for transient
+        // adds the pressure gradient term to the momentum transport equation
+        // d(den_i * v_i)/dt = -div(T_i) + f_i
+        // T_i += -grad(p)
+        // 
+        // unk - unknown vector (v_i)
+        // pres - pressure (p)
 
         // create struct
-        let mut oper_adv = OpVecDomPressure::default();
-        oper_adv.dom_id = dom_id;
-        oper_adv.pres_id = pres_id;
-        oper_adv.unk_id = unk_id;
+        let mut oper_pres = OpVecDomPressure::default();
+        oper_pres.dom_id = dom_id;
+        oper_pres.pres_id = pres_id;
+        oper_pres.unk_id = unk_id;
 
         // result
-        oper_adv
+        oper_pres
     }
 }
 
 impl OperatorBase for OpVecDomPressure {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, _t: f64, factor: f64) {
-        // assume that A (in Ax = b) is the RHS of the PDE; b is on the LHS of the PDE
-        // therefore, the sign of the local matrix entries is negative
+        // applies the weak form of the pressure gradient term
+        // -(grad(p), w)_dom
+        //
+        // let A (in Ax = b) be the RHS of the PDE and b in the LHS
+        // add -(grad(p), w)_dom to A
     
         // get objects
         let dom = &vars.dom[self.dom_id];
-        let itg = &vars.itg_dom[self.dom_id];
-        let unk = &vars.vec_dom[self.unk_id];
+        let itgdom = &vars.itg_dom[self.dom_id];
+        let unk_vec = &vars.vec_dom[self.unk_id];
 
         // iterate over elements
         for eid in 0..dom.num_elem {
@@ -49,65 +55,33 @@ impl OperatorBase for OpVecDomPressure {
             let mut ax_loc = vec![vec![0.0; num_node]; num_node];  // x momentum
             let mut ay_loc = vec![vec![0.0; num_node]; num_node];  // y momentum
 
-            // get integral data
-            let num_quad = itg.num_quad[eid];
-            let jac_det = &itg.jac_det[eid];
-            let gradn_x = &itg.quad_gnx[eid];
-            let gradn_y = &itg.quad_gny[eid];
+            // get quadrature point data
+            let num_quad = itgdom.num_quad[eid];
+            let quad_w = &itgdom.quad_w[eid];
+            let quad_n = &itgdom.quad_n[eid];
+            let quad_gnx = &itgdom.quad_gnx[eid];
+            let quad_gny = &itgdom.quad_gny[eid];
+            let jac_det = &itgdom.jac_det[eid];
 
             // assemble local matrix
-            match num_node {
-                3 => {
-                    for qid in 0..num_quad {
-                        // get values
-                        let coeff = -factor * W_TRI3[qid] *jac_det[qid];
-
-                        // get test function values
-                        let a = A_TRI3[qid];
-                        let b = B_TRI3[qid];
-                        let n = tri3_eval(a, b);
-
-                        // add to local matrix
-                        for v in 0..num_node {
-                            for j in 0..num_node {
-                                ax_loc[v][j] += coeff * gradn_x[qid][j] * n[v];
-                                ay_loc[v][j] += coeff * gradn_y[qid][j] * n[v];
-                            }
-                        }
+            for qid in 0..num_quad {
+                let coeff = -factor * quad_w[qid] * jac_det[qid];
+                for v in 0..num_node {
+                    for j in 0..num_node {
+                        ax_loc[v][j] += coeff * quad_gnx[qid][j] * quad_n[qid][v];
+                        ay_loc[v][j] += coeff * quad_gny[qid][j] * quad_n[qid][v];
                     }
-                }
-                4 => {
-                    for qid in 0..num_quad {
-                        // get values
-                        let coeff = -factor * W_QUAD4[qid] * jac_det[qid];
-
-                        // get test function values
-                        let a = A_QUAD4[qid];
-                        let b = B_QUAD4[qid];
-                        let n = quad4_eval(a, b);
-                        
-                        // add to local matrix
-                        for v in 0..num_node {
-                            for j in 0..num_node {
-                                ax_loc[v][j] += coeff * gradn_x[qid][j] * n[v];
-                                ay_loc[v][j] += coeff * gradn_y[qid][j] * n[v];
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    panic!("Invalid element type");
                 }
             }
 
-            // step 2: assemble global matrix
+            // step 2: add to global matrix
 
             // iterate over local matrix entries
             let node_id = &dom.elem_node_id[eid];
             for v in 0..num_node {
                 // skip if dirichlet BC
                 let nid_v = node_id[v];
-                if unk.node_dir[nid_v] {
+                if unk_vec.node_dir[nid_v] {
                     continue;
                 }
                 
