@@ -17,7 +17,8 @@ pub struct OpSclDomDiffusion {
 impl OpSclDomDiffusion {
     pub fn new(dom_id: usize, diff_id: usize, unk_id: usize, drv_id: usize) -> OpSclDomDiffusion {
         // adds the diffusion term to scalar transport equations
-        // d(m_i * c_i)/dt = -div( -D_ij * grad(c_j) + v * c_i ) + R_i
+        // d(m_i * c_i)/dt = -div(N_i) + R_i
+        // N_i += -D_ij * grad(c_j)
         // 
         // diff - diffusion coefficient (D_ij)
         // drv - driving scalar (c_j)

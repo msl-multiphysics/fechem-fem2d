@@ -16,7 +16,7 @@ pub struct OpSclDomTime {
 impl OpSclDomTime {
     pub fn new(dom_id: usize, wgt_id: usize, unk_id: usize) -> OpSclDomTime {
         // adds the time derivative term to scalar transport equations
-        // d(m_i * c_i)/dt = -div( N_i ) + R_i
+        // d(m_i * c_i)/dt = -div(N_i) + R_i
         // 
         // wgt - mass scalar (m_i)
         // unk - unknown scalar (c_i)
@@ -108,7 +108,7 @@ impl OpSclDomTime {
                 }
                 self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, ac_sum);
             }
-            
+
         }
     }
 }

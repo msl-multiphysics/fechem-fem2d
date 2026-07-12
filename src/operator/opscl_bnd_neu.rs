@@ -16,7 +16,7 @@ pub struct OpSclBndNeumann {
 impl OpSclBndNeumann {
     pub fn new(bnd_id: usize, flx_id: usize, unk_id: usize) -> OpSclBndNeumann {
         // applies a Neumann BC
-        // dc_i/dt = -div( N_i ) + R_i
+        // d(m_i * c_i)/dt = -div(N_i) + R_i
         // N_i * n = F_i
         // 
         // flx - prescribed normal outward flux (F_i)

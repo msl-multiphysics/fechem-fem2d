@@ -16,7 +16,7 @@ pub struct OpSclDomSource {
 impl OpSclDomSource {
     pub fn new(dom_id: usize, src_id: usize, unk_id: usize) -> OpSclDomSource {
         // adds the diffusion term to scalar transport equations
-        // d(m_i * c_i)/dt = -div( N_i ) + R_i
+        // d(m_i * c_i)/dt = -div(N_i) + R_i
         // 
         // src - source scalar (R_i)
         // unk - unknown scalar (c_i)
