@@ -193,6 +193,22 @@ impl VectorDomain {
         return (val_x, val_y);
     }
 
+    pub fn compute_quad_grad_unknown_domain(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> [[f64; 2]; 2] {
+        let num_node = dom.elem_node[eid];
+        let mut grad_x = [0.0, 0.0];
+        let mut grad_y = [0.0, 0.0];
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let gnx = itgdom.quad_gnx[eid][qid][v];
+            let gny = itgdom.quad_gny[eid][qid][v];
+            grad_x[0] += gnx * self.node_value_x[nid];
+            grad_x[1] += gny * self.node_value_x[nid];
+            grad_y[0] += gnx * self.node_value_y[nid];
+            grad_y[1] += gny * self.node_value_y[nid];
+        }
+        [grad_x, grad_y]
+    }
+
     pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, itgbnd: &IntegralBoundary, eid: usize, qid: usize) -> (f64, f64) {
         let num_node = bnd.elem_node[eid];
         let mut val_x = 0.0;
@@ -246,6 +262,22 @@ impl VectorDomain {
             val_y += itgdom.quad_n[eid][qid][v] * self.node_value_prev_y[nid];
         }
         return (val_x, val_y);
+    }
+
+    pub fn compute_quad_grad_unknown_domain_prev(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> [[f64; 2]; 2] {
+        let num_node = dom.elem_node[eid];
+        let mut grad_x = [0.0, 0.0];
+        let mut grad_y = [0.0, 0.0];
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let gnx = itgdom.quad_gnx[eid][qid][v];
+            let gny = itgdom.quad_gny[eid][qid][v];
+            grad_x[0] += gnx * self.node_value_prev_x[nid];
+            grad_x[1] += gny * self.node_value_prev_x[nid];
+            grad_y[0] += gnx * self.node_value_prev_y[nid];
+            grad_y[1] += gny * self.node_value_prev_y[nid];
+        }
+        [grad_x, grad_y]
     }
 
     pub fn update_unknown(&mut self, dom: &Domain, x_vec: &Col<f64>) {

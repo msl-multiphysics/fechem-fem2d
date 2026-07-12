@@ -97,6 +97,14 @@ impl Variables {
         Ok(scldom_id)
     }
 
+    pub fn add_scldom_funext(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64], &[[f64; 2]], &[[f64; 2]], &[[&[[f64; 2]]; 2]]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, vecdom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
+        // TODO: check that scldom_ids and vecdom_ids are unknown-type fields
+        let scldom_id = self.scl_dom.len();
+        let scldom = ScalarDomain::new_from_funcext(scldom_id, &self.dom[dom_id], value_func, scldom_ids, vecdom_ids, file_path)?;
+        self.scl_dom.push(scldom);
+        Ok(scldom_id)
+    }
+
     pub fn add_scldom_unk(&mut self, dom_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_unknown(scldom_id, &self.dom[dom_id], value_init, file_path)?;

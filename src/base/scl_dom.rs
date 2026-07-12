@@ -13,8 +13,15 @@ pub enum ScalarDomainType {
         value: f64,
     },
     Function {
-        func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>,  // function of unknown scalars only
+        // t, &[scl] -> value
+        func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>,  
         scldom_ids: Vec<usize>,
+    },
+    FunctionExtend {
+        // t, [x, y], &[scl], &[[vec_x, vec_y]], &[[scl_gx, scl_gy]], &[[vec_xgx, vec_xgy], [vec_ygy, vec_ygy]] -> value
+        func: Box<dyn Fn(f64, [f64; 2], &[f64], &[[f64; 2]], &[[f64; 2]], &[[&[[f64; 2]]; 2]]) -> f64 + Send + Sync>,  
+        scldom_ids: Vec<usize>,
+        vecdom_ids: Vec<usize>,
     },
     Unknown {
         start: usize,
@@ -82,6 +89,37 @@ impl ScalarDomain {
         scldom.scl_type = ScalarDomainType::Function {
             func: value_func,
             scldom_ids: scldom_ids,
+        };
+        scldom.node_dir = vec![false; dom.num_node];
+        scldom.node_value = vec![0.0; dom.num_node];
+        scldom.node_value_prev = vec![0.0; dom.num_node];
+
+        // set outputs if file path is not empty
+        if file_path == "" {
+            scldom.file_name = String::new();
+            scldom.file_type = String::new();
+        } else {
+            let parts: Vec<&str> = file_path.split('.').collect();
+            scldom.file_name = parts[0..parts.len() - 1].join(".");
+            scldom.file_type = parts[parts.len() - 1].to_string();
+        }
+
+        // result
+        Ok(scldom)
+    }
+
+    pub fn new_from_funcext(scldom_id: usize, dom: &Domain, value_func: Box<dyn Fn(f64, [f64; 2], &[f64], &[[f64; 2]], &[[f64; 2]], &[[&[[f64; 2]]; 2]]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, vecdom_ids: Vec<usize>, file_path: String) -> Result<ScalarDomain, FEChemError> {
+        // create struct
+        let mut scldom = ScalarDomain::default();
+        scldom.scldom_id = scldom_id;
+        scldom.dom_id = dom.dom_id;
+
+        // non-constant properties are evaluated at quadrature points
+        // these will be updated only when writing
+        scldom.scl_type = ScalarDomainType::FunctionExtend {
+            func: value_func,
+            scldom_ids: scldom_ids,
+            vecdom_ids: vecdom_ids,
         };
         scldom.node_dir = vec![false; dom.num_node];
         scldom.node_value = vec![0.0; dom.num_node];
@@ -169,6 +207,45 @@ impl ScalarDomain {
                 // evaluate function
                 return func(t, &val);
             }
+            ScalarDomainType::FunctionExtend { func, scldom_ids, vecdom_ids } => {
+                // get domain
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+
+                // quadrature point coordinates
+                let xy = [itgdom.quad_x[eid][qid], itgdom.quad_y[eid][qid]];
+
+                // vector values and gradients
+                let mut vec_val = Vec::new();
+                let mut vec_grad_arr = Vec::new();
+                let mut vec_grad_ref = Vec::new();
+                for &vecdom_id in vecdom_ids {
+                    let vecdom = &vars.vec_dom[vecdom_id];
+                    let (vec_x, vec_y) = vecdom.compute_quad_unknown_domain(dom, itgdom, eid, qid);
+                    vec_val.push([vec_x, vec_y]);
+                    let grad = vecdom.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid);
+                    vec_grad_arr.push(grad);
+                }
+                for grad in &vec_grad_arr {
+                    let grad_x: &[[f64; 2]] = std::slice::from_ref(&grad[0]);
+                    let grad_y: &[[f64; 2]] = std::slice::from_ref(&grad[1]);
+                    vec_grad_ref.push([grad_x, grad_y]);
+                }
+
+                // get scalar values and gradients
+                let mut val = Vec::new();
+                let mut scl_grad = Vec::new();
+                for &scldom_id in scldom_ids {
+                    let scldom_sub = &vars.scl_dom[scldom_id];
+                    let val_sub = scldom_sub.compute_quad_unknown_domain(dom, itgdom, eid, qid);
+                    val.push(val_sub);
+                    let grad_sub = scldom_sub.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid);
+                    scl_grad.push(grad_sub);
+                }
+
+                // evaluate function
+                return func(t, xy, &val, &vec_val, &scl_grad, &vec_grad_ref);
+            }
         }
     }
 
@@ -181,6 +258,19 @@ impl ScalarDomain {
             value_quad += itgdom.quad_n[eid][qid][v] * value_node;
         }
         return value_quad;
+    }
+
+    pub fn compute_quad_grad_unknown_domain(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> [f64; 2] {
+        let num_node = dom.elem_node[eid];
+        let mut grad_x = 0.0;
+        let mut grad_y = 0.0;
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let value_node = self.node_value[nid];
+            grad_x += itgdom.quad_gnx[eid][qid][v] * value_node;
+            grad_y += itgdom.quad_gny[eid][qid][v] * value_node;
+        }
+        [grad_x, grad_y]
     }
 
     pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, itgbnd: &IntegralBoundary, eid: usize, qid: usize) -> f64 {
@@ -222,6 +312,45 @@ impl ScalarDomain {
                 // evaluate function
                 return func(t_prev, &val);
             }
+            ScalarDomainType::FunctionExtend { func, scldom_ids, vecdom_ids } => {
+                // get domain
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+
+                // quadrature point coordinates
+                let xy = [itgdom.quad_x[eid][qid], itgdom.quad_y[eid][qid]];
+
+                // vector values and gradients
+                let mut vec_val = Vec::new();
+                let mut vec_grad_arr = Vec::new();
+                let mut vec_grad_ref = Vec::new();
+                for &vecdom_id in vecdom_ids {
+                    let vecdom = &vars.vec_dom[vecdom_id];
+                    let (vec_x, vec_y) = vecdom.compute_quad_unknown_domain_prev(dom, itgdom, eid, qid);
+                    vec_val.push([vec_x, vec_y]);
+                    let grad = vecdom.compute_quad_grad_unknown_domain_prev(dom, itgdom, eid, qid);
+                    vec_grad_arr.push(grad);
+                }
+                for grad in &vec_grad_arr {
+                    let grad_x: &[[f64; 2]] = std::slice::from_ref(&grad[0]);
+                    let grad_y: &[[f64; 2]] = std::slice::from_ref(&grad[1]);
+                    vec_grad_ref.push([grad_x, grad_y]);
+                }
+
+                // get scalar values and gradients
+                let mut val = Vec::new();
+                let mut scl_grad = Vec::new();
+                for &scldom_id in scldom_ids {
+                    let scldom_sub = &vars.scl_dom[scldom_id];
+                    let val_sub = scldom_sub.compute_quad_unknown_domain_prev(dom, itgdom, eid, qid);
+                    val.push(val_sub);
+                    let grad_sub = scldom_sub.compute_quad_grad_unknown_domain_prev(dom, itgdom, eid, qid);
+                    scl_grad.push(grad_sub);
+                }
+
+                // evaluate function
+                return func(t_prev, xy, &val, &vec_val, &scl_grad, &vec_grad_ref);
+            }
         }
     }
 
@@ -234,6 +363,19 @@ impl ScalarDomain {
             value_quad += itgdom.quad_n[eid][qid][v] * value_node;
         }
         return value_quad;
+    }
+
+    pub fn compute_quad_grad_unknown_domain_prev(&self, dom: &Domain, itgdom: &IntegralDomain, eid: usize, qid: usize) -> [f64; 2] {
+        let num_node = dom.elem_node[eid];
+        let mut grad_x = 0.0;
+        let mut grad_y = 0.0;
+        for v in 0..num_node {
+            let nid = dom.elem_node_id[eid][v];
+            let value_node = self.node_value_prev[nid];
+            grad_x += itgdom.quad_gnx[eid][qid][v] * value_node;
+            grad_y += itgdom.quad_gny[eid][qid][v] * value_node;
+        }
+        [grad_x, grad_y]
     }
 
     pub fn update_unknown(&mut self, dom: &Domain, x_vec: &Col<f64>) {
