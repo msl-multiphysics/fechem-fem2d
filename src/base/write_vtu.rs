@@ -8,6 +8,15 @@ use crate::base::vec_dom::VectorDomain;
 use std::fs::File;
 use std::io::Write;
 
+const VTU_FLOAT_DECIMALS: usize = 6;
+
+fn format_vtu_f64(value: f64) -> String {
+    if value == 0.0 || value.abs() < 1e-10 {
+        return "0.0".to_string();
+    }
+    format!("{:.prec$}", value, prec = VTU_FLOAT_DECIMALS)
+}
+
 pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", scldom.file_name, ts);
     let mut file = match File::create(&file_path) {
@@ -63,7 +72,8 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
         writeln!(
             file,
             "          {} {} 0.0",
-            dom.node_x[nid], dom.node_y[nid]
+            format_vtu_f64(dom.node_x[nid]),
+            format_vtu_f64(dom.node_y[nid])
         )
         .expect("Unable to write VTU file");
     }
@@ -116,7 +126,7 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
     .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for value in &scldom.node_value {
-        write!(file, "{} ", value).expect("Unable to write VTU file");
+        write!(file, "{} ", format_vtu_f64(*value)).expect("Unable to write VTU file");
     }
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
@@ -184,7 +194,8 @@ pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
         writeln!(
             file,
             "          {} {} 0.0",
-            dom.node_x[nid], dom.node_y[nid]
+            format_vtu_f64(dom.node_x[nid]),
+            format_vtu_f64(dom.node_y[nid])
         )
         .expect("Unable to write VTU file");
     }
@@ -239,7 +250,8 @@ pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
         writeln!(
             file,
             "          {} {} 0.0",
-            vecdom.node_value_x[nid], vecdom.node_value_y[nid]
+            format_vtu_f64(vecdom.node_value_x[nid]),
+            format_vtu_f64(vecdom.node_value_y[nid])
         )
         .expect("Unable to write VTU file");
     }
@@ -307,7 +319,8 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
         writeln!(
             file,
             "          {} {} 0.0",
-            bnd.node_x[nid], bnd.node_y[nid]
+            format_vtu_f64(bnd.node_x[nid]),
+            format_vtu_f64(bnd.node_y[nid])
         )
         .expect("Unable to write VTU file");
     }
@@ -360,7 +373,7 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
     .expect("Unable to write VTU file");
     write!(file, "          ").expect("Unable to write VTU file");
     for value in &sclbnd.node_value {
-        write!(file, "{} ", value).expect("Unable to write VTU file");
+        write!(file, "{} ", format_vtu_f64(*value)).expect("Unable to write VTU file");
     }
     writeln!(file).expect("Unable to write VTU file");
     writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
@@ -427,7 +440,8 @@ pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
         writeln!(
             file,
             "          {} {} 0.0",
-            bnd.node_x[nid], bnd.node_y[nid]
+            format_vtu_f64(bnd.node_x[nid]),
+            format_vtu_f64(bnd.node_y[nid])
         )
         .expect("Unable to write VTU file");
     }
@@ -482,7 +496,8 @@ pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
         writeln!(
             file,
             "          {} {} 0.0",
-            vecbnd.node_value_x[nid], vecbnd.node_value_y[nid]
+            format_vtu_f64(vecbnd.node_value_x[nid]),
+            format_vtu_f64(vecbnd.node_value_y[nid])
         )
         .expect("Unable to write VTU file");
     }

@@ -22,6 +22,10 @@ pub mod opvec_dom_pres;
 pub mod opvec_dom_diff;
 pub mod opvec_dom_src;
 pub mod opvec_dom_supg;
+pub mod opvec_dom_time;
 
 // vector boundary operators
 pub mod opvec_bnd_dir;
+
+// vector interface operators
+pub mod opvec_itf_cont;

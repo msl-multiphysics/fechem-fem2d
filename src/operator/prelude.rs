@@ -21,6 +21,10 @@ pub use super::opvec_dom_pres::*;
 pub use super::opvec_dom_diff::*;
 pub use super::opvec_dom_src::*;
 pub use super::opvec_dom_supg::*;
+pub use super::opvec_dom_time::*;
 
 // vector boundary operators
 pub use super::opvec_bnd_dir::*;
+
+// vector interface operators
+pub use super::opvec_itf_cont::*;

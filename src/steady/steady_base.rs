@@ -3,6 +3,7 @@ use crate::base::scl_dom::ScalarDomainType;
 use crate::base::scl_itf::ScalarInterfaceType;
 use crate::base::vars::Variables;
 use crate::base::vec_dom::VectorDomainType;
+use crate::base::vec_itf::VectorInterfaceType;
 use crate::solver::solver_base::SolverBase;
 use faer::Col;
 use faer::sparse::SparseColMat;
@@ -72,6 +73,16 @@ pub trait SteadyBase {
                 for nid in 0..num_node {
                     x_iter_vec[start + nid] = vecdom.node_value_x[nid];
                     x_iter_vec[start + nid + num_node] = vecdom.node_value_y[nid];
+                }
+            }
+        }
+        for vecitf in &vars.vec_itf {
+            if let VectorInterfaceType::Unknown { start } = vecitf.vec_type {
+                let itf = &vars.itf[vecitf.itf_id];
+                let num_node = itf.num_node;
+                for nid in 0..num_node {
+                    x_iter_vec[start + nid] = vecitf.node_value_x[nid];
+                    x_iter_vec[start + nid + num_node] = vecitf.node_value_y[nid];
                 }
             }
         }

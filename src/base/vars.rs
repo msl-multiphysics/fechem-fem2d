@@ -126,6 +126,13 @@ impl Variables {
         Ok(sclitf_id)
     }
 
+    pub fn add_vecitf_unk(&mut self, itf_id: usize, value_init_x: f64, value_init_y: f64, file_path: String) -> Result<usize, FEChemError> {
+        let vecitf_id = self.vec_itf.len();
+        let vecitf = VectorInterface::new_from_unknown(vecitf_id, &self.itf[itf_id], value_init_x, value_init_y, file_path)?;
+        self.vec_itf.push(vecitf);
+        Ok(vecitf_id)
+    }
+
     pub fn add_vecdom_con(&mut self, dom_id: usize, value_const_x: f64, value_const_y: f64, file_path: String) -> Result<usize, FEChemError> {
         let vecdom_id = self.vec_dom.len();
         let vecdom = VectorDomain::new_from_constant(vecdom_id, &self.dom[dom_id], value_const_x, value_const_y, file_path)?;
