@@ -70,6 +70,12 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarDomain::new_from_constant".to_string(),
+                    file_path,
+                });
+            }
             scldom.file_name = parts[0..parts.len() - 1].join(".");
             scldom.file_type = parts[parts.len() - 1].to_string();
         }
@@ -100,6 +106,12 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarDomain::new_from_function".to_string(),
+                    file_path,
+                });
+            }
             scldom.file_name = parts[0..parts.len() - 1].join(".");
             scldom.file_type = parts[parts.len() - 1].to_string();
         }
@@ -131,6 +143,12 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarDomain::new_from_funcext".to_string(),
+                    file_path,
+                });
+            }
             scldom.file_name = parts[0..parts.len() - 1].join(".");
             scldom.file_type = parts[parts.len() - 1].to_string();
         }
@@ -157,6 +175,12 @@ impl ScalarDomain {
             scldom.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarDomain::new_from_unknown".to_string(),
+                    file_path,
+                });
+            }
             scldom.file_name = parts[0..parts.len() - 1].join(".");
             scldom.file_type = parts[parts.len() - 1].to_string();
         }
@@ -173,7 +197,13 @@ impl ScalarDomain {
             "csv" => write_scldom_csv(&dom, &self, ts)?,
             "vtu" => write_scldom_vtu(&dom, &self, ts)?,
             "" => (), // do nothing if file type is empty
-            _ => panic!("Unsupported file type: {}", self.file_type),
+            _ => {
+                return Err(FEChemError::UnsupportedFileFormat {
+                    caller: "ScalarDomain::write".to_string(),
+                    type_need: "csv or vtu".to_string(),
+                    type_got: self.file_type.clone(),
+                });
+            }
         }
 
         // placeholder

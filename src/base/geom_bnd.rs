@@ -34,6 +34,15 @@ pub struct Boundary {
 
 impl Boundary {
     pub fn new(bnd_id: usize, mesh: &Mesh, dom: &Domain, reg_id: usize) -> Result<Boundary, FEChemError> {
+        // error handling
+        if reg_id >= mesh.num_reg1d {
+            return Err(FEChemError::InvalidReg1dId {
+                caller: "Boundary::new".to_string(),
+                reg_id,
+                num_reg1d: mesh.num_reg1d,
+            });
+        }
+
         // initialize boundary
         let mut bnd = Boundary::default();
         bnd.bnd_id = bnd_id;

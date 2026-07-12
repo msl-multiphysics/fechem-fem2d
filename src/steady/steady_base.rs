@@ -20,16 +20,16 @@ pub trait SteadyBase {
         let time_start = Instant::now();
         println!("Starting steady-state solver.");
 
-        // // error handling
-        // if max_iter == 0 {
-        //     return Err(FVChemError::InvalidMaxIter {caller: "SteadyBase::solve".to_string(), max_iter});
-        // }
-        // if tol <= 0.0 {
-        //     return Err(FVChemError::InvalidTolerance {caller: "SteadyBase::solve".to_string(), tol});
-        // }
-        // if damp <= 0.0 || damp > 1.0 {
-        //     return Err(FVChemError::InvalidDamping {caller: "SteadyBase::solve".to_string(), damp});
-        // }
+        // error handling
+        if max_iter == 0 {
+            return Err(FEChemError::InvalidMaxIter {caller: "SteadyBase::solve".to_string(), max_iter});
+        }
+        if tol <= 0.0 {
+            return Err(FEChemError::InvalidTolerance {caller: "SteadyBase::solve".to_string(), tol});
+        }
+        if damp <= 0.0 || damp > 1.0 {
+            return Err(FEChemError::InvalidDamping {caller: "SteadyBase::solve".to_string(), damp});
+        }
 
         // initialize time measurement
         let mut time_assemble = Duration::ZERO;

@@ -27,6 +27,15 @@ pub struct Domain {
 
 impl Domain {
     pub fn new(dom_id: usize, mesh: &Mesh, reg_id: usize) -> Result<Domain, FEChemError> {
+        // error handling
+        if reg_id >= mesh.num_reg2d {
+            return Err(FEChemError::InvalidReg2dId {
+                caller: "Domain::new".to_string(),
+                reg_id,
+                num_reg2d: mesh.num_reg2d,
+            });
+        }
+
         // initialize domain
         let mut dom = Domain::default();
         dom.dom_id = dom_id;

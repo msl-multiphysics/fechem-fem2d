@@ -7,10 +7,10 @@ use crate::base::itg_dom::IntegralDomain;
 use crate::base::itg_itf::IntegralInterface;
 use crate::base::mesh::Mesh;
 use crate::base::scl_bnd::{ScalarBoundary, update_function_sclbnd};
-use crate::base::scl_dom::{ScalarDomain, update_function_scldom};
+use crate::base::scl_dom::{ScalarDomain, ScalarDomainType, update_function_scldom};
 use crate::base::scl_itf::ScalarInterface;
 use crate::base::vec_bnd::{VectorBoundary, update_function_vecbnd};
-use crate::base::vec_dom::{VectorDomain, update_function_vecdom};
+use crate::base::vec_dom::{VectorDomain, VectorDomainType, update_function_vecdom};
 use crate::base::vec_itf::VectorInterface;
 use faer::Col;
 
@@ -62,6 +62,13 @@ impl Variables {
     }
 
     pub fn add_bnd(&mut self, dom_id: usize, reg_id: usize) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_bnd".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let bnd_id = self.bnd.len();
         let itgbnd_id = self.itg_bnd.len();
         let bnd = Boundary::new(bnd_id, &self.mesh, &self.dom[dom_id], reg_id)?;
@@ -72,6 +79,20 @@ impl Variables {
     }
 
     pub fn add_itf(&mut self, dom1_id: usize, dom2_id: usize, reg_id: usize) -> Result<usize, FEChemError> {
+        if dom1_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_itf".to_string(),
+                dom_id: dom1_id,
+                num_dom: self.dom.len(),
+            });
+        }
+        if dom2_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_itf".to_string(),
+                dom_id: dom2_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let itf_id = self.itf.len();
         let itgitf_id = self.itg_itf.len();
         let itf = Interface::new(itf_id, &self.mesh, &self.dom[dom1_id], &self.dom[dom2_id], reg_id)?;
@@ -82,6 +103,13 @@ impl Variables {
     }
 
     pub fn add_scldom_con(&mut self, dom_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_scldom_con".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_constant(scldom_id, &self.dom[dom_id], value_const, file_path)?;
         self.scl_dom.push(scldom);
@@ -89,8 +117,29 @@ impl Variables {
     }
 
     pub fn add_scldom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
-        // TODO: check that scldom_ids are unknown-type scalars
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_scldom_fun".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         // function works only on unknown scalars
+        for &scldom_id in &scldom_ids {
+            if scldom_id >= self.scl_dom.len() {
+                return Err(FEChemError::InvalidSclDomId {
+                    caller: "Variables::add_scldom_fun".to_string(),
+                    scldom_id,
+                    num_scldom: self.scl_dom.len(),
+                });
+            }
+            if !matches!(self.scl_dom[scldom_id].scl_type, ScalarDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidSclDomType {
+                    caller: "Variables::add_scldom_fun".to_string(),
+                    scldom_id,
+                });
+            }
+        }
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_function(scldom_id, &self.dom[dom_id], value_func, scldom_ids, file_path)?;
         self.scl_dom.push(scldom);
@@ -98,7 +147,43 @@ impl Variables {
     }
 
     pub fn add_scldom_funext(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, [f64; 2], &[f64], &[[f64; 2]], &[[f64; 2]], &[[&[[f64; 2]]; 2]]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, vecdom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
-        // TODO: check that scldom_ids and vecdom_ids are unknown-type fields
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_scldom_funext".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
+        for &scldom_id in &scldom_ids {
+            if scldom_id >= self.scl_dom.len() {
+                return Err(FEChemError::InvalidSclDomId {
+                    caller: "Variables::add_scldom_funext".to_string(),
+                    scldom_id,
+                    num_scldom: self.scl_dom.len(),
+                });
+            }
+            if !matches!(self.scl_dom[scldom_id].scl_type, ScalarDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidSclDomType {
+                    caller: "Variables::add_scldom_funext".to_string(),
+                    scldom_id,
+                });
+            }
+        }
+        for &vecdom_id in &vecdom_ids {
+            if vecdom_id >= self.vec_dom.len() {
+                return Err(FEChemError::InvalidVecDomId {
+                    caller: "Variables::add_scldom_funext".to_string(),
+                    vecdom_id,
+                    num_vecdom: self.vec_dom.len(),
+                });
+            }
+            if !matches!(self.vec_dom[vecdom_id].vec_type, VectorDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidVecDomType {
+                    caller: "Variables::add_scldom_funext".to_string(),
+                    vecdom_id,
+                });
+            }
+        }
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_funcext(scldom_id, &self.dom[dom_id], value_func, scldom_ids, vecdom_ids, file_path)?;
         self.scl_dom.push(scldom);
@@ -106,6 +191,13 @@ impl Variables {
     }
 
     pub fn add_scldom_unk(&mut self, dom_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_scldom_unk".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let scldom_id = self.scl_dom.len();
         let scldom = ScalarDomain::new_from_unknown(scldom_id, &self.dom[dom_id], value_init, file_path)?;
         self.scl_dom.push(scldom);
@@ -113,6 +205,13 @@ impl Variables {
     }
 
     pub fn add_sclbnd_con(&mut self, bnd_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
+        if bnd_id >= self.bnd.len() {
+            return Err(FEChemError::InvalidBndId {
+                caller: "Variables::add_sclbnd_con".to_string(),
+                bnd_id,
+                num_bnd: self.bnd.len(),
+            });
+        }
         let sclbnd_id = self.scl_bnd.len();
         let sclbnd = ScalarBoundary::new_from_constant(sclbnd_id, &self.bnd[bnd_id], value_const, file_path)?;
         self.scl_bnd.push(sclbnd);
@@ -120,7 +219,28 @@ impl Variables {
     }
 
     pub fn add_sclbnd_fun(&mut self, bnd_id: usize, value_func: Box<dyn Fn(f64, &[f64]) -> f64 + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
-        // TODO: check that scldom_ids are unknown-type scalars
+        if bnd_id >= self.bnd.len() {
+            return Err(FEChemError::InvalidBndId {
+                caller: "Variables::add_sclbnd_fun".to_string(),
+                bnd_id,
+                num_bnd: self.bnd.len(),
+            });
+        }
+        for &scldom_id in &scldom_ids {
+            if scldom_id >= self.scl_dom.len() {
+                return Err(FEChemError::InvalidSclDomId {
+                    caller: "Variables::add_sclbnd_fun".to_string(),
+                    scldom_id,
+                    num_scldom: self.scl_dom.len(),
+                });
+            }
+            if !matches!(self.scl_dom[scldom_id].scl_type, ScalarDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidSclDomType {
+                    caller: "Variables::add_sclbnd_fun".to_string(),
+                    scldom_id,
+                });
+            }
+        }
         let sclbnd_id = self.scl_bnd.len();
         let sclbnd = ScalarBoundary::new_from_function(sclbnd_id, &self.bnd[bnd_id], value_func, scldom_ids, file_path)?;
         self.scl_bnd.push(sclbnd);
@@ -128,6 +248,13 @@ impl Variables {
     }
 
     pub fn add_sclitf_con(&mut self, itf_id: usize, value_const: f64, file_path: String) -> Result<usize, FEChemError> {
+        if itf_id >= self.itf.len() {
+            return Err(FEChemError::InvalidItfId {
+                caller: "Variables::add_sclitf_con".to_string(),
+                itf_id,
+                num_itf: self.itf.len(),
+            });
+        }
         let sclitf_id = self.scl_itf.len();
         let sclitf = ScalarInterface::new_from_constant(sclitf_id, &self.itf[itf_id], value_const, file_path)?;
         self.scl_itf.push(sclitf);
@@ -135,6 +262,13 @@ impl Variables {
     }
 
     pub fn add_sclitf_unk(&mut self, itf_id: usize, value_init: f64, file_path: String) -> Result<usize, FEChemError> {
+        if itf_id >= self.itf.len() {
+            return Err(FEChemError::InvalidItfId {
+                caller: "Variables::add_sclitf_unk".to_string(),
+                itf_id,
+                num_itf: self.itf.len(),
+            });
+        }
         let sclitf_id = self.scl_itf.len();
         let sclitf = ScalarInterface::new_from_unknown(sclitf_id, &self.itf[itf_id], value_init, file_path)?;
         self.scl_itf.push(sclitf);
@@ -142,6 +276,13 @@ impl Variables {
     }
 
     pub fn add_vecitf_unk(&mut self, itf_id: usize, value_init_x: f64, value_init_y: f64, file_path: String) -> Result<usize, FEChemError> {
+        if itf_id >= self.itf.len() {
+            return Err(FEChemError::InvalidItfId {
+                caller: "Variables::add_vecitf_unk".to_string(),
+                itf_id,
+                num_itf: self.itf.len(),
+            });
+        }
         let vecitf_id = self.vec_itf.len();
         let vecitf = VectorInterface::new_from_unknown(vecitf_id, &self.itf[itf_id], value_init_x, value_init_y, file_path)?;
         self.vec_itf.push(vecitf);
@@ -149,6 +290,13 @@ impl Variables {
     }
 
     pub fn add_vecdom_con(&mut self, dom_id: usize, value_const_x: f64, value_const_y: f64, file_path: String) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_vecdom_con".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let vecdom_id = self.vec_dom.len();
         let vecdom = VectorDomain::new_from_constant(vecdom_id, &self.dom[dom_id], value_const_x, value_const_y, file_path)?;
         self.vec_dom.push(vecdom);
@@ -156,6 +304,28 @@ impl Variables {
     }
 
     pub fn add_vecdom_fun(&mut self, dom_id: usize, value_func: Box<dyn Fn(f64, &[f64]) -> (f64, f64) + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_vecdom_fun".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
+        for &scldom_id in &scldom_ids {
+            if scldom_id >= self.scl_dom.len() {
+                return Err(FEChemError::InvalidSclDomId {
+                    caller: "Variables::add_vecdom_fun".to_string(),
+                    scldom_id,
+                    num_scldom: self.scl_dom.len(),
+                });
+            }
+            if !matches!(self.scl_dom[scldom_id].scl_type, ScalarDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidSclDomType {
+                    caller: "Variables::add_vecdom_fun".to_string(),
+                    scldom_id,
+                });
+            }
+        }
         let vecdom_id = self.vec_dom.len();
         let vecdom = VectorDomain::new_from_function(vecdom_id, &self.dom[dom_id], value_func, scldom_ids, file_path)?;
         self.vec_dom.push(vecdom);
@@ -163,6 +333,13 @@ impl Variables {
     }
 
     pub fn add_vecdom_unk(&mut self, dom_id: usize, value_init_x: f64, value_init_y: f64, file_path: String) -> Result<usize, FEChemError> {
+        if dom_id >= self.dom.len() {
+            return Err(FEChemError::InvalidDomId {
+                caller: "Variables::add_vecdom_unk".to_string(),
+                dom_id,
+                num_dom: self.dom.len(),
+            });
+        }
         let vecdom_id = self.vec_dom.len();
         let vecdom = VectorDomain::new_from_unknown(vecdom_id, &self.dom[dom_id], value_init_x, value_init_y, file_path)?;
         self.vec_dom.push(vecdom);
@@ -170,6 +347,13 @@ impl Variables {
     }
 
     pub fn add_vecbnd_con(&mut self, bnd_id: usize, value_const_x: f64, value_const_y: f64, file_path: String) -> Result<usize, FEChemError> {
+        if bnd_id >= self.bnd.len() {
+            return Err(FEChemError::InvalidBndId {
+                caller: "Variables::add_vecbnd_con".to_string(),
+                bnd_id,
+                num_bnd: self.bnd.len(),
+            });
+        }
         let vecbnd_id = self.vec_bnd.len();
         let vecbnd = VectorBoundary::new_from_constant(vecbnd_id, &self.bnd[bnd_id], value_const_x, value_const_y, file_path)?;
         self.vec_bnd.push(vecbnd);
@@ -177,6 +361,28 @@ impl Variables {
     }
 
     pub fn add_vecbnd_fun(&mut self, bnd_id: usize, value_func: Box<dyn Fn(f64, &[f64]) -> (f64, f64) + Send + Sync>, scldom_ids: Vec<usize>, file_path: String) -> Result<usize, FEChemError> {
+        if bnd_id >= self.bnd.len() {
+            return Err(FEChemError::InvalidBndId {
+                caller: "Variables::add_vecbnd_fun".to_string(),
+                bnd_id,
+                num_bnd: self.bnd.len(),
+            });
+        }
+        for &scldom_id in &scldom_ids {
+            if scldom_id >= self.scl_dom.len() {
+                return Err(FEChemError::InvalidSclDomId {
+                    caller: "Variables::add_vecbnd_fun".to_string(),
+                    scldom_id,
+                    num_scldom: self.scl_dom.len(),
+                });
+            }
+            if !matches!(self.scl_dom[scldom_id].scl_type, ScalarDomainType::Unknown { .. }) {
+                return Err(FEChemError::InvalidSclDomType {
+                    caller: "Variables::add_vecbnd_fun".to_string(),
+                    scldom_id,
+                });
+            }
+        }
         let vecbnd_id = self.vec_bnd.len();
         let vecbnd = VectorBoundary::new_from_function(vecbnd_id, &self.bnd[bnd_id], value_func, scldom_ids, file_path)?;
         self.vec_bnd.push(vecbnd);

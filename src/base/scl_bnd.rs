@@ -54,6 +54,12 @@ impl ScalarBoundary {
             sclbnd.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarBoundary::new_from_constant".to_string(),
+                    file_path,
+                });
+            }
             sclbnd.file_name = parts[0..parts.len() - 1].join(".");
             sclbnd.file_type = parts[parts.len() - 1].to_string();
         }
@@ -83,6 +89,12 @@ impl ScalarBoundary {
             sclbnd.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarBoundary::new_from_function".to_string(),
+                    file_path,
+                });
+            }
             sclbnd.file_name = parts[0..parts.len() - 1].join(".");
             sclbnd.file_type = parts[parts.len() - 1].to_string();
         }
@@ -97,7 +109,13 @@ impl ScalarBoundary {
             "csv" => write_sclbnd_csv(&bnd, &self, ts)?,
             "vtu" => write_sclbnd_vtu(&bnd, &self, ts)?,
             "" => (), // do nothing if file type is empty
-            _ => panic!("Unsupported file type: {}", self.file_type),
+            _ => {
+                return Err(FEChemError::UnsupportedFileFormat {
+                    caller: "ScalarBoundary::write".to_string(),
+                    type_need: "csv or vtu".to_string(),
+                    type_got: self.file_type.clone(),
+                });
+            }
         }
 
         // placeholder

@@ -19,6 +19,7 @@ fn format_vtu_f64(value: f64) -> String {
 
 pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", scldom.file_name, ts);
+    let caller = "write_scldom_vtu";
     let mut file = match File::create(&file_path) {
         Ok(f) => f,
         Err(_) => {
@@ -48,26 +49,26 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
         cell_types.push(vtk_cell_type);
     }
 
-    writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
+    writeln!(file, "<?xml version=\"1.0\"?>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
     )
-    .expect("Unable to write VTU file");
-    writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  <UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "    <Piece NumberOfPoints=\"{}\" NumberOfCells=\"{}\">",
         dom.num_node, dom.num_elem
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Points>").expect("Unable to write VTU file");
+    writeln!(file, "      <Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..dom.num_node {
         writeln!(
             file,
@@ -75,72 +76,73 @@ pub fn write_scldom_vtu(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
             format_vtu_f64(dom.node_x[nid]),
             format_vtu_f64(dom.node_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Points>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Cells>").expect("Unable to write VTU file");
+    writeln!(file, "      <Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for node_id in &connectivity {
-        write!(file, "{} ", node_id).expect("Unable to write VTU file");
+        write!(file, "{} ", node_id).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for off in &offsets {
-        write!(file, "{} ", off).expect("Unable to write VTU file");
+        write!(file, "{} ", off).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for cell_type in &cell_types {
-        write!(file, "{} ", cell_type).expect("Unable to write VTU file");
+        write!(file, "{} ", cell_type).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Cells>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <PointData Scalars=\"value\">").expect("Unable to write VTU file");
+    writeln!(file, "      <PointData Scalars=\"value\">").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for value in &scldom.node_value {
-        write!(file, "{} ", format_vtu_f64(*value)).expect("Unable to write VTU file");
+        write!(file, "{} ", format_vtu_f64(*value)).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </PointData>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </PointData>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "    </Piece>").expect("Unable to write VTU file");
-    writeln!(file, "  </UnstructuredGrid>").expect("Unable to write VTU file");
-    writeln!(file, "</VTKFile>").expect("Unable to write VTU file");
+    writeln!(file, "    </Piece>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  </UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "</VTKFile>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     Ok(())
 }
 
 pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", vecdom.file_name, ts);
+    let caller = "write_vecdom_vtu";
     let mut file = match File::create(&file_path) {
         Ok(f) => f,
         Err(_) => {
@@ -170,26 +172,26 @@ pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
         cell_types.push(vtk_cell_type);
     }
 
-    writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
+    writeln!(file, "<?xml version=\"1.0\"?>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
     )
-    .expect("Unable to write VTU file");
-    writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  <UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "    <Piece NumberOfPoints=\"{}\" NumberOfCells=\"{}\">",
         dom.num_node, dom.num_elem
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Points>").expect("Unable to write VTU file");
+    writeln!(file, "      <Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..dom.num_node {
         writeln!(
             file,
@@ -197,55 +199,55 @@ pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
             format_vtu_f64(dom.node_x[nid]),
             format_vtu_f64(dom.node_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Points>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Cells>").expect("Unable to write VTU file");
+    writeln!(file, "      <Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for node_id in &connectivity {
-        write!(file, "{} ", node_id).expect("Unable to write VTU file");
+        write!(file, "{} ", node_id).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for off in &offsets {
-        write!(file, "{} ", off).expect("Unable to write VTU file");
+        write!(file, "{} ", off).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for cell_type in &cell_types {
-        write!(file, "{} ", cell_type).expect("Unable to write VTU file");
+        write!(file, "{} ", cell_type).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Cells>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <PointData Vectors=\"value\">").expect("Unable to write VTU file");
+    writeln!(file, "      <PointData Vectors=\"value\">").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" Name=\"value\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..dom.num_node {
         writeln!(
             file,
@@ -253,20 +255,21 @@ pub fn write_vecdom_vtu(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
             format_vtu_f64(vecdom.node_value_x[nid]),
             format_vtu_f64(vecdom.node_value_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </PointData>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </PointData>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "    </Piece>").expect("Unable to write VTU file");
-    writeln!(file, "  </UnstructuredGrid>").expect("Unable to write VTU file");
-    writeln!(file, "</VTKFile>").expect("Unable to write VTU file");
+    writeln!(file, "    </Piece>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  </UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "</VTKFile>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     Ok(())
 }
 
 pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", sclbnd.file_name, ts);
+    let caller = "write_sclbnd_vtu";
     let mut file = match File::create(&file_path) {
         Ok(f) => f,
         Err(_) => {
@@ -295,26 +298,26 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
         cell_types.push(vtk_cell_type);
     }
 
-    writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
+    writeln!(file, "<?xml version=\"1.0\"?>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
     )
-    .expect("Unable to write VTU file");
-    writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  <UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "    <Piece NumberOfPoints=\"{}\" NumberOfCells=\"{}\">",
         bnd.num_node, bnd.num_elem
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Points>").expect("Unable to write VTU file");
+    writeln!(file, "      <Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..bnd.num_node {
         writeln!(
             file,
@@ -322,72 +325,73 @@ pub fn write_sclbnd_vtu(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
             format_vtu_f64(bnd.node_x[nid]),
             format_vtu_f64(bnd.node_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Points>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Cells>").expect("Unable to write VTU file");
+    writeln!(file, "      <Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for node_id in &connectivity {
-        write!(file, "{} ", node_id).expect("Unable to write VTU file");
+        write!(file, "{} ", node_id).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for off in &offsets {
-        write!(file, "{} ", off).expect("Unable to write VTU file");
+        write!(file, "{} ", off).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for cell_type in &cell_types {
-        write!(file, "{} ", cell_type).expect("Unable to write VTU file");
+        write!(file, "{} ", cell_type).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Cells>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <PointData Scalars=\"value\">").expect("Unable to write VTU file");
+    writeln!(file, "      <PointData Scalars=\"value\">").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" Name=\"value\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for value in &sclbnd.node_value {
-        write!(file, "{} ", format_vtu_f64(*value)).expect("Unable to write VTU file");
+        write!(file, "{} ", format_vtu_f64(*value)).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </PointData>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </PointData>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "    </Piece>").expect("Unable to write VTU file");
-    writeln!(file, "  </UnstructuredGrid>").expect("Unable to write VTU file");
-    writeln!(file, "</VTKFile>").expect("Unable to write VTU file");
+    writeln!(file, "    </Piece>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  </UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "</VTKFile>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     Ok(())
 }
 
 pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> Result<(), FEChemError> {
     let file_path = format!("{}_{}.vtu", vecbnd.file_name, ts);
+    let caller = "write_vecbnd_vtu";
     let mut file = match File::create(&file_path) {
         Ok(f) => f,
         Err(_) => {
@@ -416,26 +420,26 @@ pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
         cell_types.push(vtk_cell_type);
     }
 
-    writeln!(file, "<?xml version=\"1.0\"?>").expect("Unable to write VTU file");
+    writeln!(file, "<?xml version=\"1.0\"?>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">"
     )
-    .expect("Unable to write VTU file");
-    writeln!(file, "  <UnstructuredGrid>").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  <UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "    <Piece NumberOfPoints=\"{}\" NumberOfCells=\"{}\">",
         bnd.num_node, bnd.num_elem
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Points>").expect("Unable to write VTU file");
+    writeln!(file, "      <Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..bnd.num_node {
         writeln!(
             file,
@@ -443,55 +447,55 @@ pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
             format_vtu_f64(bnd.node_x[nid]),
             format_vtu_f64(bnd.node_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Points>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Points>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <Cells>").expect("Unable to write VTU file");
+    writeln!(file, "      <Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for node_id in &connectivity {
-        write!(file, "{} ", node_id).expect("Unable to write VTU file");
+        write!(file, "{} ", node_id).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for off in &offsets {
-        write!(file, "{} ", off).expect("Unable to write VTU file");
+        write!(file, "{} ", off).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     writeln!(
         file,
         "        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
-    write!(file, "          ").expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    write!(file, "          ").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for cell_type in &cell_types {
-        write!(file, "{} ", cell_type).expect("Unable to write VTU file");
+        write!(file, "{} ", cell_type).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file).expect("Unable to write VTU file");
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </Cells>").expect("Unable to write VTU file");
+    writeln!(file).map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </Cells>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "      <PointData Vectors=\"value\">").expect("Unable to write VTU file");
+    writeln!(file, "      <PointData Vectors=\"value\">").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     writeln!(
         file,
         "        <DataArray type=\"Float64\" Name=\"value\" NumberOfComponents=\"3\" format=\"ascii\">"
     )
-    .expect("Unable to write VTU file");
+    .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     for nid in 0..bnd.num_node {
         writeln!(
             file,
@@ -499,14 +503,14 @@ pub fn write_vecbnd_vtu(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
             format_vtu_f64(vecbnd.node_value_x[nid]),
             format_vtu_f64(vecbnd.node_value_y[nid])
         )
-        .expect("Unable to write VTU file");
+        .map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
     }
-    writeln!(file, "        </DataArray>").expect("Unable to write VTU file");
-    writeln!(file, "      </PointData>").expect("Unable to write VTU file");
+    writeln!(file, "        </DataArray>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "      </PointData>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
-    writeln!(file, "    </Piece>").expect("Unable to write VTU file");
-    writeln!(file, "  </UnstructuredGrid>").expect("Unable to write VTU file");
-    writeln!(file, "</VTKFile>").expect("Unable to write VTU file");
+    writeln!(file, "    </Piece>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "  </UnstructuredGrid>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
+    writeln!(file, "</VTKFile>").map_err(|_| FEChemError::FileWriteError { caller: caller.to_string(), file_path: file_path.clone(), })?;
 
     Ok(())
 }

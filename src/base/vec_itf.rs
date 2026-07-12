@@ -53,6 +53,12 @@ impl VectorInterface {
             vecitf.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "VectorInterface::new_from_constant".to_string(),
+                    file_path,
+                });
+            }
             vecitf.file_name = parts[0..parts.len() - 1].join(".");
             vecitf.file_type = parts[parts.len() - 1].to_string();
         }
@@ -83,6 +89,12 @@ impl VectorInterface {
             vecitf.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "VectorInterface::new_from_unknown".to_string(),
+                    file_path,
+                });
+            }
             vecitf.file_name = parts[0..parts.len() - 1].join(".");
             vecitf.file_type = parts[parts.len() - 1].to_string();
         }

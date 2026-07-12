@@ -31,6 +31,34 @@ impl Mesh {
     }
 
     pub fn new_from_bounds(x_min: f64, y_min: f64, x_max: f64, y_max: f64, num_elm_x: usize, num_elm_y: usize) -> Result<Mesh, FEChemError> {
+        // error handling
+        if x_min >= x_max {
+            return Err(FEChemError::InvalidBoundsX {
+                caller: "Mesh::new_from_bounds".to_string(),
+                x_min,
+                x_max,
+            });
+        }
+        if y_min >= y_max {
+            return Err(FEChemError::InvalidBoundsY {
+                caller: "Mesh::new_from_bounds".to_string(),
+                y_min,
+                y_max,
+            });
+        }
+        if num_elm_x < 2 {
+            return Err(FEChemError::InvalidNodeCountX {
+                caller: "Mesh::new_from_bounds".to_string(),
+                x_num: num_elm_x,
+            });
+        }
+        if num_elm_y < 2 {
+            return Err(FEChemError::InvalidNodeCountY {
+                caller: "Mesh::new_from_bounds".to_string(),
+                y_num: num_elm_y,
+            });
+        }
+
         // initialize Mesh
         let mut dom = Mesh::default();
 

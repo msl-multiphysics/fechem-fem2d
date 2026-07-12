@@ -57,6 +57,12 @@ impl VectorBoundary {
             vecbnd.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "VectorBoundary::new_from_constant".to_string(),
+                    file_path,
+                });
+            }
             vecbnd.file_name = parts[0..parts.len() - 1].join(".");
             vecbnd.file_type = parts[parts.len() - 1].to_string();
         }
@@ -87,6 +93,12 @@ impl VectorBoundary {
             vecbnd.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "VectorBoundary::new_from_function".to_string(),
+                    file_path,
+                });
+            }
             vecbnd.file_name = parts[0..parts.len() - 1].join(".");
             vecbnd.file_type = parts[parts.len() - 1].to_string();
         }
@@ -101,7 +113,13 @@ impl VectorBoundary {
             "csv" => write_vecbnd_csv(&bnd, &self, ts)?,
             "vtu" => write_vecbnd_vtu(&bnd, &self, ts)?,
             "" => (), // do nothing if file type is empty
-            _ => panic!("Unsupported file type: {}", self.file_type),
+            _ => {
+                return Err(FEChemError::UnsupportedFileFormat {
+                    caller: "VectorBoundary::write".to_string(),
+                    type_need: "csv or vtu".to_string(),
+                    type_got: self.file_type.clone(),
+                });
+            }
         }
 
         // placeholder

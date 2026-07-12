@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum FEChemError {
+pub enum FVChemError {
 
     // file - general
     #[error("{caller}: File format is not supported. Needs {type_need}. Got {type_got}.")]
@@ -13,11 +13,6 @@ pub enum FEChemError {
     },
     #[error("{caller}: Could not write to file: {file_path}.")]
     FileWriteError {
-        caller: String,
-        file_path: String,
-    },
-    #[error("{caller}: Output file path must include an extension. Got file_path = {file_path}.")]
-    InvalidOutputPath {
         caller: String,
         file_path: String,
     },
@@ -59,65 +54,18 @@ pub enum FEChemError {
         caller: String,
         message: String,
     },
-    #[error("Invalid element type")]
-    InvalidElementType,
-    #[error("Boundary edge with domain nodes {node0} and {node1} not found on any domain element")]
-    BoundaryEdgeNotFound { node0: usize, node1: usize },
-    #[error("{caller}: 2d region id out of range. Got reg_id = {reg_id}; num_reg2d = {num_reg2d}.")]
-    InvalidReg2dId {
+    #[error("{caller}: Interface face not found on dom1d_b: mesh face {gfid}.")]
+    InvalidInterface {
         caller: String,
-        reg_id: usize,
-        num_reg2d: usize,
+        gfid: usize,
     },
-    #[error("{caller}: 1d region id out of range. Got reg_id = {reg_id}; num_reg1d = {num_reg1d}.")]
-    InvalidReg1dId {
+    #[error("{caller}: Interface dom1d face counts do not match. dom1d_a has {num_face_a}; dom1d_b has {num_face_b}.")]
+    InvalidInterfaceCount {
         caller: String,
-        reg_id: usize,
-        num_reg1d: usize,
+        num_face_a: usize,
+        num_face_b: usize,
     },
-
-    // variables - ids
-    #[error("{caller}: Domain id out of range. Got dom_id = {dom_id}; num_dom = {num_dom}.")]
-    InvalidDomId {
-        caller: String,
-        dom_id: usize,
-        num_dom: usize,
-    },
-    #[error("{caller}: Boundary id out of range. Got bnd_id = {bnd_id}; num_bnd = {num_bnd}.")]
-    InvalidBndId {
-        caller: String,
-        bnd_id: usize,
-        num_bnd: usize,
-    },
-    #[error("{caller}: Interface id out of range. Got itf_id = {itf_id}; num_itf = {num_itf}.")]
-    InvalidItfId {
-        caller: String,
-        itf_id: usize,
-        num_itf: usize,
-    },
-    #[error("{caller}: Scalar domain id out of range. Got scldom_id = {scldom_id}; num_scldom = {num_scldom}.")]
-    InvalidSclDomId {
-        caller: String,
-        scldom_id: usize,
-        num_scldom: usize,
-    },
-    #[error("{caller}: Vector domain id out of range. Got vecdom_id = {vecdom_id}; num_vecdom = {num_vecdom}.")]
-    InvalidVecDomId {
-        caller: String,
-        vecdom_id: usize,
-        num_vecdom: usize,
-    },
-    #[error("{caller}: Scalar domain must be unknown type. Got scldom_id = {scldom_id}.")]
-    InvalidSclDomType {
-        caller: String,
-        scldom_id: usize,
-    },
-    #[error("{caller}: Vector domain must be unknown type. Got vecdom_id = {vecdom_id}.")]
-    InvalidVecDomType {
-        caller: String,
-        vecdom_id: usize,
-    },
-
+    
     // physics solver - general
     #[error("{caller}: Need at least one iteration. Got max_iter = {max_iter}.")]
     InvalidMaxIter {

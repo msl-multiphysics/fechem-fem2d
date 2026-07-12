@@ -49,6 +49,12 @@ impl ScalarInterface {
             sclitf.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarInterface::new_from_constant".to_string(),
+                    file_path,
+                });
+            }
             sclitf.file_name = parts[0..parts.len() - 1].join(".");
             sclitf.file_type = parts[parts.len() - 1].to_string();
         }
@@ -77,6 +83,12 @@ impl ScalarInterface {
             sclitf.file_type = String::new();
         } else {
             let parts: Vec<&str> = file_path.split('.').collect();
+            if parts.len() < 2 {
+                return Err(FEChemError::InvalidOutputPath {
+                    caller: "ScalarInterface::new_from_unknown".to_string(),
+                    file_path,
+                });
+            }
             sclitf.file_name = parts[0..parts.len() - 1].join(".");
             sclitf.file_type = parts[parts.len() - 1].to_string();
         }

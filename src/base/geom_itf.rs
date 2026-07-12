@@ -40,6 +40,15 @@ pub struct Interface {
 
 impl Interface {
     pub fn new(itf_id: usize, mesh: &Mesh, dom1: &Domain, dom2: &Domain, reg_id: usize) -> Result<Interface, FEChemError> {
+        // error handling
+        if reg_id >= mesh.num_reg1d {
+            return Err(FEChemError::InvalidReg1dId {
+                caller: "Interface::new".to_string(),
+                reg_id,
+                num_reg1d: mesh.num_reg1d,
+            });
+        }
+
         // initialize interface
         let mut itf = Interface::default();
         itf.itf_id = itf_id;

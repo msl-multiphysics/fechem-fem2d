@@ -19,25 +19,25 @@ pub trait TransientBase {
         let time_start = Instant::now();
         println!("Starting transient solver.");
 
-        // // error handling
-        // if dt <= 0.0 {
-        //     return Err(FEChemError::InvalidTimeStep {caller: "TransientBase::solve".to_string(), dt});
-        // }
-        // if num_ts == 0 {
-        //     return Err(FEChemError::InvalidNumTimeSteps {caller: "TransientBase::solve".to_string(), num_ts});
-        // }
-        // if num_ts_write == 0 {
-        //     return Err(FEChemError::InvalidWriteFrequency {caller: "TransientBase::solve".to_string(), num_ts_write});
-        // }
-        // if max_iter == 0 {
-        //     return Err(FEChemError::InvalidMaxIter {caller: "SteadyBase::solve".to_string(), max_iter});
-        // }
-        // if tol <= 0.0 {
-        //     return Err(FEChemError::InvalidTolerance {caller: "SteadyBase::solve".to_string(), tol});
-        // }
-        // if damp <= 0.0 || damp > 1.0 {
-        //     return Err(FEChemError::InvalidDamping {caller: "SteadyBase::solve".to_string(), damp});
-        // }
+        // error handling
+        if dt <= 0.0 {
+            return Err(FEChemError::InvalidTimeStep {caller: "TransientBase::solve".to_string(), dt});
+        }
+        if num_ts == 0 {
+            return Err(FEChemError::InvalidNumTimeSteps {caller: "TransientBase::solve".to_string(), num_ts});
+        }
+        if num_ts_write == 0 {
+            return Err(FEChemError::InvalidWriteFrequency {caller: "TransientBase::solve".to_string(), num_ts_write});
+        }
+        if max_iter == 0 {
+            return Err(FEChemError::InvalidMaxIter {caller: "TransientBase::solve".to_string(), max_iter});
+        }
+        if tol <= 0.0 {
+            return Err(FEChemError::InvalidTolerance {caller: "TransientBase::solve".to_string(), tol});
+        }
+        if damp <= 0.0 || damp > 1.0 {
+            return Err(FEChemError::InvalidDamping {caller: "TransientBase::solve".to_string(), damp});
+        }
 
         // initialize time measurement
         let mut time_assemble = Duration::ZERO;

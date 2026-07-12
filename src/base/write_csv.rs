@@ -20,14 +20,20 @@ pub fn write_scldom_csv(dom: &Domain, scldom: &ScalarDomain, ts: usize) -> Resul
         }
     };
 
-    writeln!(file, "x,y,value").expect("Unable to write header");
+    writeln!(file, "x,y,value").map_err(|_| FEChemError::FileWriteError {
+        caller: "write_scldom_csv".to_string(),
+        file_path: file_path.clone(),
+    })?;
     for nid in 0..dom.num_node {
         writeln!(
             file,
             "{},{},{}",
             dom.node_x[nid], dom.node_y[nid], scldom.node_value[nid]
         )
-        .expect("Unable to write data");
+        .map_err(|_| FEChemError::FileWriteError {
+            caller: "write_scldom_csv".to_string(),
+            file_path: file_path.clone(),
+        })?;
     }
 
     Ok(())
@@ -45,7 +51,10 @@ pub fn write_vecdom_csv(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
         }
     };
 
-    writeln!(file, "x,y,value_x,value_y").expect("Unable to write header");
+    writeln!(file, "x,y,value_x,value_y").map_err(|_| FEChemError::FileWriteError {
+        caller: "write_vecdom_csv".to_string(),
+        file_path: file_path.clone(),
+    })?;
     for nid in 0..dom.num_node {
         writeln!(
             file,
@@ -55,7 +64,10 @@ pub fn write_vecdom_csv(dom: &Domain, vecdom: &VectorDomain, ts: usize) -> Resul
             vecdom.node_value_x[nid],
             vecdom.node_value_y[nid]
         )
-        .expect("Unable to write data");
+        .map_err(|_| FEChemError::FileWriteError {
+            caller: "write_vecdom_csv".to_string(),
+            file_path: file_path.clone(),
+        })?;
     }
 
     Ok(())
@@ -73,14 +85,20 @@ pub fn write_sclbnd_csv(bnd: &Boundary, sclbnd: &ScalarBoundary, ts: usize) -> R
         }
     };
 
-    writeln!(file, "x,y,value").expect("Unable to write header");
+    writeln!(file, "x,y,value").map_err(|_| FEChemError::FileWriteError {
+        caller: "write_sclbnd_csv".to_string(),
+        file_path: file_path.clone(),
+    })?;
     for nid in 0..bnd.num_node {
         writeln!(
             file,
             "{},{},{}",
             bnd.node_x[nid], bnd.node_y[nid], sclbnd.node_value[nid]
         )
-        .expect("Unable to write data");
+        .map_err(|_| FEChemError::FileWriteError {
+            caller: "write_sclbnd_csv".to_string(),
+            file_path: file_path.clone(),
+        })?;
     }
 
     Ok(())
@@ -98,7 +116,10 @@ pub fn write_vecbnd_csv(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
         }
     };
 
-    writeln!(file, "x,y,value_x,value_y").expect("Unable to write header");
+    writeln!(file, "x,y,value_x,value_y").map_err(|_| FEChemError::FileWriteError {
+        caller: "write_vecbnd_csv".to_string(),
+        file_path: file_path.clone(),
+    })?;
     for nid in 0..bnd.num_node {
         writeln!(
             file,
@@ -108,7 +129,10 @@ pub fn write_vecbnd_csv(bnd: &Boundary, vecbnd: &VectorBoundary, ts: usize) -> R
             vecbnd.node_value_x[nid],
             vecbnd.node_value_y[nid]
         )
-        .expect("Unable to write data");
+        .map_err(|_| FEChemError::FileWriteError {
+            caller: "write_vecbnd_csv".to_string(),
+            file_path: file_path.clone(),
+        })?;
     }
 
     Ok(())
