@@ -9,7 +9,7 @@ use std::num::NonZeroUsize;
 pub struct SolverGmres {}
 
 impl SolverBase for SolverGmres {
-    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, x_init: &Col<f64>, mat_size: usize) -> Result<Col<f64>, FEChemError> {
+    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, x_init: &Col<f64>, mat_size: usize) -> Col<f64> {
         let mut b_mat = Mat::<f64>::zeros(b_vec.nrows(), 1);
         let mut x_mat = Mat::<f64>::zeros(x_init.nrows(), 1);
         for i in 0..b_vec.nrows() {
@@ -23,16 +23,14 @@ impl SolverBase for SolverGmres {
         let tol = 1e-8;
 
         gmres(a_mat.as_ref(), b_mat.as_ref(), x_mat.as_mut(), max_iter, tol, None)
-        .map_err(|_| FEChemError::FailedMatrixSolve {
-            caller: "SolverGmres::solve".to_string(),
-        })?;
+            .expect("Failed to solve matrix equation.");
 
         let mut x_vec = Col::<f64>::zeros(x_mat.nrows());
         for i in 0..x_mat.nrows() {
             x_vec[i] = x_mat[(i, 0)];
         }
 
-        Ok(x_vec)
+        x_vec
     }
 }
 

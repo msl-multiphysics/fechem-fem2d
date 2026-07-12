@@ -10,17 +10,10 @@ use std::num::NonZeroUsize;
 pub struct SolverLu {}
 
 impl SolverBase for SolverLu {
-    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, _: &Col<f64>, _: usize) -> Result<Col<f64>, FEChemError> {
-        let symbolic =
-            SymbolicLu::try_new(a_mat.symbolic()).map_err(|_| FEChemError::FailedMatrixSolve {
-                caller: "SolverLu::solve".to_string(),
-            })?;
-        let lu = Lu::try_new_with_symbolic(symbolic, a_mat.as_ref()).map_err(|_| {
-            FEChemError::FailedMatrixSolve {
-                caller: "SolverLu::solve".to_string(),
-            }
-        })?;
-        Ok(lu.solve(b_vec))
+    fn solve(&self, a_mat: &SparseColMat<usize, f64>, b_vec: &Col<f64>, _: &Col<f64>, _: usize) -> Col<f64> {
+        let symbolic = SymbolicLu::try_new(a_mat.symbolic()).expect("Failed to create symbolic LU factorization.");
+        let lu = Lu::try_new_with_symbolic(symbolic, a_mat.as_ref()).expect("Failed to create LU factorization.");
+        lu.solve(b_vec)
     }
 }
 

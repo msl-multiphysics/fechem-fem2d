@@ -100,7 +100,7 @@ pub trait SteadyBase {
 
             // solve A_k x_undamped = b_k for x_undamped
             // solve x_{k+1} = (1 - damp) * x_k + damp * x_undamped for x_damp
-            x_udmp_vec = solver.solve(&a_mat, &b_vec, &x_iter_vec, mat_size)?;
+            x_udmp_vec = solver.solve(&a_mat, &b_vec, &x_iter_vec, mat_size);
             let x_damp_new = (1.0 - damp) * &x_iter_vec + damp * &x_udmp_vec;
 
             let time_i1 = Instant::now();
