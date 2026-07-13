@@ -38,8 +38,8 @@ pub struct TransientFlow {
 
     // operators
     pub oper_itr: Vec<(OpVecDomTime, OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupg, OpSclDomDivergence, OpSclDomPspg)>,
-    pub oper_bnd_vel: Vec<OpVecBndDirichlet>,
-    pub oper_bnd_pres: Vec<OpSclBndDirichlet>,
+    pub oper_bnd_vel: Vec<(OpVecBndDirichlet, OpSclBndDivergence)>,
+    pub oper_bnd_pres: Vec<(OpSclBndDirichlet, OpVecBndPressure)>,
     pub oper_cont_vel_itf: Vec<OpVecItfContinuity>,
     pub oper_cont_pres_itf: Vec<OpSclItfContinuity>,
 }
@@ -199,18 +199,23 @@ impl TransientBase for TransientFlow {
         for &bnd_id in &self.vel_bnd {
             let dom_id = vars.bnd[bnd_id].dom_id;
             let dom_vel_id = self.itr_vel[&dom_id];
+            let dom_pres_id = self.itr_pres[&dom_id];
+            let den_id = self.itr_den[&dom_id];
             let bnd_vel_id = self.vel_vel[&bnd_id];
             let oper_dir = OpVecBndDirichlet::new(bnd_id, bnd_vel_id, dom_vel_id);
-            self.oper_bnd_vel.push(oper_dir);
+            let oper_div = OpSclBndDivergence::new(bnd_id, den_id, bnd_vel_id, dom_pres_id);
+            self.oper_bnd_vel.push((oper_dir, oper_div));
         }
 
         // boundary pressure operator
         for &bnd_id in &self.pres_bnd {
             let dom_id = vars.bnd[bnd_id].dom_id;
+            let dom_vel_id = self.itr_vel[&dom_id];
             let dom_pres_id = self.itr_pres[&dom_id];
             let bnd_pres_id = self.pres_pres[&bnd_id];
             let oper_dir = OpSclBndDirichlet::new(bnd_id, bnd_pres_id, dom_pres_id);
-            self.oper_bnd_pres.push(oper_dir);
+            let oper_pres = OpVecBndPressure::new(bnd_id, bnd_pres_id, dom_vel_id);
+            self.oper_bnd_pres.push((oper_dir, oper_pres));
         }
 
         // interface continuity operators
@@ -248,11 +253,13 @@ impl TransientBase for TransientFlow {
         }
 
         // assemble boundary data
-        for oper_dir in &self.oper_bnd_vel {
+        for (oper_dir, oper_div) in &self.oper_bnd_vel {
             oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_div.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
-        for oper_dir in &self.oper_bnd_pres {
+        for (oper_dir, oper_pres) in &self.oper_bnd_pres {
             oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_pres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
         }
 
         // assemble interface data

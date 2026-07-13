@@ -5,6 +5,7 @@ pub use super::oper_base::*;
 pub use super::opscl_bnd_neu::*;
 pub use super::opscl_bnd_dir::*;
 pub use super::opscl_bnd_trn::*;
+pub use super::opscl_bnd_div::*;
 
 // scalar domain operators
 pub use super::opscl_dom_diff::*;
@@ -27,6 +28,7 @@ pub use super::opvec_dom_time::*;
 
 // vector boundary operators
 pub use super::opvec_bnd_dir::*;
+pub use super::opvec_bnd_pres::*;
 
 // vector interface operators
 pub use super::opvec_itf_cont::*;

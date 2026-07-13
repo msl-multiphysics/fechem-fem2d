@@ -85,7 +85,7 @@ impl IntegralBoundary {
                 }
 
                 
-                // tangent: [dx/da, dy/da]; normal: [-dy/da, dx/da]
+                // tangent: [dx/da, dy/da]; inward normal: [-dy/da, dx/da]
                 // J = [dx/da  -dy/da]
                 //     [dy/da   dx/da]
                 let mut dxda = 0.0;
