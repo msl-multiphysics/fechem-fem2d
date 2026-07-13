@@ -28,7 +28,6 @@ fn main() -> Result<(), FEChemError> {
     create_dir_all("examples/output_flow_vortex").unwrap();
 
     // problem and mesh
-    // arguments: x_min, y_min, x_max, y_max, num_elem_x, num_elem_y
     let mut vars = Variables::new("examples/gmsh/gmsh_vortex.msh".to_string())?;
 
     // geometry
@@ -48,7 +47,7 @@ fn main() -> Result<(), FEChemError> {
     // arguments: domain, value, output_file
     // set output file to empty string to not write to file
     let den = vars.add_scldom_con(dom, 1000.0, "".to_string())?;
-    let visc = vars.add_scldom_con(dom, 1.0, "".to_string())?;
+    let visc = vars.add_scldom_con(dom, 0.1, "".to_string())?;
     let fce = vars.add_vecdom_con(dom, 0.0, 0.0, "".to_string())?;  // this is body force (den * g) not acceleration (g)
 
     // constant properties on boundaries
@@ -75,7 +74,7 @@ fn main() -> Result<(), FEChemError> {
     // solve
     // arguments: vars, solver, max_iter, tol, damping_factor
     // lower damping factor for better stability; higher for faster convergence
-    phys.solve(&mut vars, Box::new(solver), 0.01, 1000, 10, 100, 1e-3, 1.0)?;
+    phys.solve(&mut vars, Box::new(solver), 0.01, 100, 1, 100, 1e-3, 1.0)?;
 
     Ok(())
 }

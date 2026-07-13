@@ -24,11 +24,11 @@ height = 0.41  # channel height
 cylinder_x = 0.2  # cylinder center x-coordinate
 cylinder_y = 0.2  # cylinder center y-coordinate
 cylinder_radius = 0.05  # cylinder radius
-size_cylinder = 0.01  # size of elements near the cylinder
-size_wake = 0.03  # size of elements in the downstream wake
-size_far = 0.10  # size of elements far from the cylinder and wake
-ref_start = 0.05  # distance from cylinder to start coarsening
-ref_end = 0.3  # distance from cylinder to end coarsening
+size_cylinder = 0.008  # size of elements near the cylinder
+size_wake = 0.015  # size of elements in the downstream wake
+size_far = 0.08  # size of elements far from the cylinder and wake
+ref_start = 0.02  # distance from cylinder to start coarsening
+ref_end = 0.15  # distance from cylinder to end coarsening
 
 # create points
 p1 = gmsh.model.geo.addPoint(0.0, 0.0, 0, size_far, 1)
