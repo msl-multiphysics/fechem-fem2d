@@ -77,14 +77,17 @@ impl OperatorBase for OpSclBndNeumann {
             // iterate over nodes in element
             let node_id = &bnd.elem_node_id[eid];
             for v in 0..num_node {
+                // get node ids
+                let nid_bnd = node_id[v];
+                let nid_dom = bnd.node_bnd_dom_id[nid_bnd];
+
                 // skip if dirichlet BC
-                let nid_v = node_id[v];
-                if unk_scl.node_dir[nid_v] {
+                if unk_scl.node_dir[nid_dom] {
                     continue;
                 }
                 
                 // add to global vector
-                self.add_b_scldom(vars, b_vec, self.unk_id, nid_v, b_loc[v]);
+                self.add_b_scldom(vars, b_vec, self.unk_id, nid_dom, b_loc[v]);
             }
 
         }
