@@ -72,8 +72,9 @@ fn main() -> Result<(), FEChemError> {
     phys.add_vel_bnd(bnd_c, v_c);
 
     // solve
-    // arguments: vars, solver, max_iter, tol, damping_factor
+    // arguments: vars, solver, dt, num_ts, num_ts_write, max_iter, tol, damping_factor
     // lower damping factor for better stability; higher for faster convergence
+    // writes an output file every num_ts_write time steps
     phys.solve(&mut vars, Box::new(solver), 0.01, 100, 1, 100, 1e-3, 1.0)?;
 
     Ok(())

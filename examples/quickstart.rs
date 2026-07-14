@@ -2,7 +2,7 @@ use fechem_fem2d::*;
 use std::fs::create_dir_all;
 
 /// Steady-state heat equation.
-/// Run with: `cargo run --release --example heat_quickstart`
+/// Run with: `cargo run --release --example quickstart`
 ///
 /// Geometry:
 /// - x-axis: 0.0 m to 1.0 m; 20 elements
