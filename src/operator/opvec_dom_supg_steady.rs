@@ -65,7 +65,9 @@ impl OpVecDomSupgSteady {
 impl OperatorBase for OpVecDomSupgSteady {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the steady SUPG stabilization term
-        // tau * (v_j . grad(w), rho * v_j . grad(v_i) + grad_i(p) - f_i)_dom
+        // tau * (v_j . grad(w), rho * v_j . grad(v_i) + grad_i(p) - div_i(tau_visc) - f_i)_dom
+        // tau_visc = mu * (grad(v) + grad(v)^T) - (2/3) * mu * div(v) * I
+        // on P1 elements, div(tau_visc) reduces to terms involving grad(mu)
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
         // add the SUPG stabilization contributions to A and b
@@ -85,7 +87,10 @@ impl OperatorBase for OpVecDomSupgSteady {
 
             // initialize local matrices
             let num_node = dom.elem_node[eid];
-            let mut a_loc = vec![vec![0.0; num_node]; num_node];  // both x and y momentum have the same local matrix
+            let mut axx_loc = vec![vec![0.0; num_node]; num_node]; // x momentum, x velocity
+            let mut axy_loc = vec![vec![0.0; num_node]; num_node]; // x momentum, y velocity
+            let mut ayx_loc = vec![vec![0.0; num_node]; num_node]; // y momentum, x velocity
+            let mut ayy_loc = vec![vec![0.0; num_node]; num_node]; // y momentum, y velocity
             let mut axp_loc = vec![vec![0.0; num_node]; num_node];  // pressure coupling in x momentum
             let mut ayp_loc = vec![vec![0.0; num_node]; num_node];  // pressure coupling in y momentum
             let mut bx_loc = vec![0.0; num_node];
@@ -103,6 +108,7 @@ impl OperatorBase for OpVecDomSupgSteady {
             for qid in 0..num_quad {
                 let den = den_scl.compute_quad(vars, eid, qid, t);
                 let visc = visc_scl.compute_quad(vars, eid, qid, t);
+                let [mu_x, mu_y] = visc_scl.compute_quad_grad(vars, eid, qid, t);
                 let (drv_x, drv_y) = drv_vec.compute_quad(vars, eid, qid, t);  // lag the driving vector by 1 iteration
                 let (fce_x, fce_y) = fce_vec.compute_quad(vars, eid, qid, t);
                 let tau = self.compute_tau(den, visc, drv_x, drv_y, &jac_met[qid]);
@@ -110,10 +116,28 @@ impl OperatorBase for OpVecDomSupgSteady {
                 for v in 0..num_node {
                     let drv_grad_v = drv_x * quad_gnx[qid][v] + drv_y * quad_gny[qid][v];
                     for j in 0..num_node {
-                        let drv_grad_j = drv_x * quad_gnx[qid][j] + drv_y * quad_gny[qid][j];
-                        a_loc[v][j] += coeff * drv_grad_v * den * drv_grad_j;
-                        axp_loc[v][j] += coeff * drv_grad_v * quad_gnx[qid][j];
-                        ayp_loc[v][j] += coeff * drv_grad_v * quad_gny[qid][j];
+                        let gnx_j = quad_gnx[qid][j];
+                        let gny_j = quad_gny[qid][j];
+                        let drv_grad_j = drv_x * gnx_j + drv_y * gny_j;
+
+                        // advection and pressure residual contributions
+                        axx_loc[v][j] += coeff * drv_grad_v * den * drv_grad_j;
+                        ayy_loc[v][j] += coeff * drv_grad_v * den * drv_grad_j;
+                        axp_loc[v][j] += coeff * drv_grad_v * gnx_j;
+                        ayp_loc[v][j] += coeff * drv_grad_v * gny_j;
+
+                        // viscous residual: +div(tau_visc) on the PDE RHS
+                        // -> add tau_supg * (v . grad(w), div(tau_visc)) to A
+                        // on P1: div(tau_visc)_x = (4/3)*mu_x*vx,x - (2/3)*mu_x*vy,y + mu_y*(vx,y + vy,x)
+                        //        div(tau_visc)_y = mu_x*(vy,x + vx,y) - (2/3)*mu_y*vx,x + (4/3)*mu_y*vy,y
+                        let divx_vx = (4.0 / 3.0) * mu_x * gnx_j + mu_y * gny_j;
+                        let divx_vy = -(2.0 / 3.0) * mu_x * gny_j + mu_y * gnx_j;
+                        let divy_vx = mu_x * gny_j - (2.0 / 3.0) * mu_y * gnx_j;
+                        let divy_vy = mu_x * gnx_j + (4.0 / 3.0) * mu_y * gny_j;
+                        axx_loc[v][j] += -coeff * drv_grad_v * divx_vx;
+                        axy_loc[v][j] += -coeff * drv_grad_v * divx_vy;
+                        ayx_loc[v][j] += -coeff * drv_grad_v * divy_vx;
+                        ayy_loc[v][j] += -coeff * drv_grad_v * divy_vy;
                     }
                     bx_loc[v] += coeff * drv_grad_v * fce_x;
                     by_loc[v] += coeff * drv_grad_v * fce_y;
@@ -134,8 +158,10 @@ impl OperatorBase for OpVecDomSupgSteady {
                 // add to global matrix and vector
                 for j in 0..num_node {
                     let nid_j = node_id[j];
-                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 0, nid_v, self.unk_id, 0, nid_j, a_loc[v][j]);
-                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 1, nid_v, self.unk_id, 1, nid_j, a_loc[v][j]);
+                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 0, nid_v, self.unk_id, 0, nid_j, axx_loc[v][j]);
+                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 0, nid_v, self.unk_id, 1, nid_j, axy_loc[v][j]);
+                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 1, nid_v, self.unk_id, 0, nid_j, ayx_loc[v][j]);
+                    self.add_a_vecdom(vars, a_triplet, self.unk_id, 1, nid_v, self.unk_id, 1, nid_j, ayy_loc[v][j]);
                     self.add_a_vecdom_scldom(vars, a_triplet, self.unk_id, 0, nid_v, self.pres_id, nid_j, axp_loc[v][j]);
                     self.add_a_vecdom_scldom(vars, a_triplet, self.unk_id, 1, nid_v, self.pres_id, nid_j, ayp_loc[v][j]);
                 }

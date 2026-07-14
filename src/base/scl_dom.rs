@@ -303,6 +303,90 @@ impl ScalarDomain {
         [grad_x, grad_y]
     }
 
+    pub fn compute_quad_grad(&self, vars: &Variables, eid: usize, qid: usize, t: f64) -> [f64; 2] {
+        // gradient of a scalar property at a quadrature point
+        // constants have zero gradient; unknowns use nodal interpolation;
+        // functions use the P1 interpolant of nodal property values
+        match &self.scl_type {
+            ScalarDomainType::Constant { .. } => {
+                [0.0, 0.0]
+            }
+            ScalarDomainType::Unknown { .. } => {
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                self.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid)
+            }
+            ScalarDomainType::Function { .. } | ScalarDomainType::FunctionExtend { .. } => {
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                let num_node = dom.elem_node[eid];
+                let mut grad_x = 0.0;
+                let mut grad_y = 0.0;
+                for v in 0..num_node {
+                    let nid = dom.elem_node_id[eid][v];
+                    let value_node = self.compute_node(vars, nid, eid, qid, t);
+                    grad_x += itgdom.quad_gnx[eid][qid][v] * value_node;
+                    grad_y += itgdom.quad_gny[eid][qid][v] * value_node;
+                }
+                [grad_x, grad_y]
+            }
+        }
+    }
+
+    fn compute_node(&self, vars: &Variables, nid: usize, eid: usize, qid: usize, t: f64) -> f64 {
+        // evaluate scalar at a mesh node (for reconstructing property gradients)
+        match &self.scl_type {
+            ScalarDomainType::Constant { value } => {
+                *value
+            }
+            ScalarDomainType::Unknown { .. } => {
+                self.node_value[nid]
+            }
+            ScalarDomainType::Function { func, scldom_ids } => {
+                let mut val = Vec::new();
+                for &scldom_id in scldom_ids {
+                    let scldom_sub = &vars.scl_dom[scldom_id];
+                    val.push(scldom_sub.node_value[nid]);
+                }
+                func(t, &val)
+            }
+            ScalarDomainType::FunctionExtend { func, scldom_ids, vecdom_ids } => {
+                // get domain
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                let xy = [dom.node_x[nid], dom.node_y[nid]];
+
+                // vector values at the node; gradients are element-wise (P1)
+                let mut vec_val = Vec::new();
+                let mut vec_grad_arr = Vec::new();
+                let mut vec_grad_ref = Vec::new();
+                for &vecdom_id in vecdom_ids {
+                    let vecdom = &vars.vec_dom[vecdom_id];
+                    vec_val.push([vecdom.node_value_x[nid], vecdom.node_value_y[nid]]);
+                    let grad = vecdom.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid);
+                    vec_grad_arr.push(grad);
+                }
+                for grad in &vec_grad_arr {
+                    let grad_x: &[[f64; 2]] = std::slice::from_ref(&grad[0]);
+                    let grad_y: &[[f64; 2]] = std::slice::from_ref(&grad[1]);
+                    vec_grad_ref.push([grad_x, grad_y]);
+                }
+
+                // scalar values at the node; gradients are element-wise (P1)
+                let mut val = Vec::new();
+                let mut scl_grad = Vec::new();
+                for &scldom_id in scldom_ids {
+                    let scldom_sub = &vars.scl_dom[scldom_id];
+                    val.push(scldom_sub.node_value[nid]);
+                    let grad_sub = scldom_sub.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid);
+                    scl_grad.push(grad_sub);
+                }
+
+                func(t, xy, &val, &vec_val, &scl_grad, &vec_grad_ref)
+            }
+        }
+    }
+
     pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, itgbnd: &IntegralBoundary, eid: usize, qid: usize) -> f64 {
         let num_node = bnd.elem_node[eid];
         let mut value_quad = 0.0;

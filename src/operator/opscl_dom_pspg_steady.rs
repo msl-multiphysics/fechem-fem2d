@@ -65,7 +65,9 @@ impl OpSclDomPspgSteady {
 impl OperatorBase for OpSclDomPspgSteady {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the steady PSPG stabilization term
-        // tau * (grad(w), rho * v . grad(v) + grad(p) - f)_dom
+        // tau * (grad(w), rho * v . grad(v) + grad(p) - div(tau_visc) - f)_dom
+        // tau_visc = mu * (grad(v) + grad(v)^T) - (2/3) * mu * div(v) * I
+        // on P1 elements, div(tau_visc) reduces to terms involving grad(mu)
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
         // add the PSPG stabilization contributions to A and b
@@ -102,18 +104,34 @@ impl OperatorBase for OpSclDomPspgSteady {
             for qid in 0..num_quad {
                 let den = den_scl.compute_quad(vars, eid, qid, t);
                 let visc = visc_scl.compute_quad(vars, eid, qid, t);
+                let [mu_x, mu_y] = visc_scl.compute_quad_grad(vars, eid, qid, t);
                 let (vel_x, vel_y) = vel_vec.compute_quad(vars, eid, qid, t);  // lag the velocity by 1 iteration
                 let (fce_x, fce_y) = fce_vec.compute_quad(vars, eid, qid, t);
                 let tau = self.compute_tau(den, visc, vel_x, vel_y, &jac_met[qid]);
                 let coeff = -factor * quad_w[qid] * tau * jac_det[qid];
                 for v in 0..num_node {
+                    let gnx_v = quad_gnx[qid][v];
+                    let gny_v = quad_gny[qid][v];
                     for j in 0..num_node {
-                        let vel_grad_j = vel_x * quad_gnx[qid][j] + vel_y * quad_gny[qid][j];
-                        ax_loc[v][j] += coeff * quad_gnx[qid][v] * den * vel_grad_j;
-                        ay_loc[v][j] += coeff * quad_gny[qid][v] * den * vel_grad_j;
-                        ap_loc[v][j] += coeff * (quad_gnx[qid][v] * quad_gnx[qid][j] + quad_gny[qid][v] * quad_gny[qid][j]);
+                        let gnx_j = quad_gnx[qid][j];
+                        let gny_j = quad_gny[qid][j];
+                        let vel_grad_j = vel_x * gnx_j + vel_y * gny_j;
+
+                        // advection and pressure residual contributions
+                        ax_loc[v][j] += coeff * gnx_v * den * vel_grad_j;
+                        ay_loc[v][j] += coeff * gny_v * den * vel_grad_j;
+                        ap_loc[v][j] += coeff * (gnx_v * gnx_j + gny_v * gny_j);
+
+                        // viscous residual: +div(tau_visc) on the PDE RHS
+                        // -> add tau_pspg * (grad(w), div(tau_visc)) to A
+                        let divx_vx = (4.0 / 3.0) * mu_x * gnx_j + mu_y * gny_j;
+                        let divx_vy = -(2.0 / 3.0) * mu_x * gny_j + mu_y * gnx_j;
+                        let divy_vx = mu_x * gny_j - (2.0 / 3.0) * mu_y * gnx_j;
+                        let divy_vy = mu_x * gnx_j + (4.0 / 3.0) * mu_y * gny_j;
+                        ax_loc[v][j] += -coeff * (gnx_v * divx_vx + gny_v * divy_vx);
+                        ay_loc[v][j] += -coeff * (gnx_v * divx_vy + gny_v * divy_vy);
                     }
-                    b_loc[v] += coeff * (quad_gnx[qid][v] * fce_x + quad_gny[qid][v] * fce_y);
+                    b_loc[v] += coeff * (gnx_v * fce_x + gny_v * fce_y);
                 }
             }
 
