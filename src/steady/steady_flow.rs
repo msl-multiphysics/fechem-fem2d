@@ -37,7 +37,7 @@ pub struct SteadyFlow {
     pub pref_pres: f64,
 
     // operators
-    pub oper_itr: Vec<(OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupg, OpSclDomDivergence, OpSclDomPspg)>,
+    pub oper_itr: Vec<(OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupgSteady, OpSclDomDivergence, OpSclDomPspgSteady)>,
     pub oper_bnd_vel: Vec<(OpVecBndDirichlet, OpSclBndDivergence)>,
     pub oper_bnd_pres: Vec<(OpSclBndDirichlet, OpVecBndPressure)>,
     pub oper_cont_vel_itf: Vec<OpVecItfContinuity>,
@@ -188,9 +188,9 @@ impl SteadyBase for SteadyFlow {
             let oper_pres = OpVecDomPressure::new(dom_id, vel_id, pres_id);
             let oper_diff = OpVecDomDiffusion::new(dom_id, visc_id, vel_id, vel_id);
             let oper_src = OpVecDomSource::new(dom_id, fce_id, vel_id);
-            let oper_supg = OpVecDomSupg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, vel_id);
+            let oper_supg = OpVecDomSupgSteady::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, vel_id);
             let oper_div = OpSclDomDivergence::new(dom_id, den_id, vel_id, pres_id);
-            let oper_pspg = OpSclDomPspg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, pres_id);
+            let oper_pspg = OpSclDomPspgSteady::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, pres_id);
 
             self.oper_itr.push((oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_div, oper_pspg));
         }

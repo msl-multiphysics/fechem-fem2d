@@ -37,7 +37,7 @@ pub struct TransientFlow {
     pub pref_pres: f64,
 
     // operators
-    pub oper_itr: Vec<(OpVecDomTime, OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupg, OpSclDomDivergence, OpSclDomPspg)>,
+    pub oper_itr: Vec<(OpVecDomTime, OpVecDomAdvection, OpVecDomPressure, OpVecDomDiffusion, OpVecDomSource, OpVecDomSupgSteady, OpVecDomSupgTime, OpSclDomDivergence, OpSclDomPspgSteady, OpSclDomPspgTime)>,
     pub oper_bnd_vel: Vec<(OpVecBndDirichlet, OpSclBndDivergence)>,
     pub oper_bnd_pres: Vec<(OpSclBndDirichlet, OpVecBndPressure)>,
     pub oper_cont_vel_itf: Vec<OpVecItfContinuity>,
@@ -188,11 +188,13 @@ impl TransientBase for TransientFlow {
             let oper_pres = OpVecDomPressure::new(dom_id, vel_id, pres_id);
             let oper_diff = OpVecDomDiffusion::new(dom_id, visc_id, vel_id, vel_id);
             let oper_src = OpVecDomSource::new(dom_id, fce_id, vel_id);
-            let oper_supg = OpVecDomSupg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, vel_id);
+            let oper_supg = OpVecDomSupgSteady::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, vel_id);
+            let oper_supg_time = OpVecDomSupgTime::new(dom_id, den_id, visc_id, vel_id, vel_id);
             let oper_div = OpSclDomDivergence::new(dom_id, den_id, vel_id, pres_id);
-            let oper_pspg = OpSclDomPspg::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, pres_id);
+            let oper_pspg = OpSclDomPspgSteady::new(dom_id, den_id, visc_id, vel_id, pres_id, fce_id, pres_id);
+            let oper_pspg_time = OpSclDomPspgTime::new(dom_id, den_id, visc_id, vel_id, pres_id);
 
-            self.oper_itr.push((oper_time, oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_div, oper_pspg));
+            self.oper_itr.push((oper_time, oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_supg_time, oper_div, oper_pspg, oper_pspg_time));
         }
 
         // boundary velocity operator
@@ -241,15 +243,17 @@ impl TransientBase for TransientFlow {
         *b_vec = Col::zeros(mat_size);
 
         // assemble internal data
-        for (oper_time, oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_div, oper_pspg) in &self.oper_itr {
+        for (oper_time, oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_supg_time, oper_div, oper_pspg, oper_pspg_time) in &self.oper_itr {
             oper_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
             oper_adv.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_pres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_diff.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_src.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_supg.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_supg_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
             oper_div.apply(vars, &mut a_triplet, b_vec, t, 1.0);
             oper_pspg.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_pspg_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
         }
 
         // assemble boundary data

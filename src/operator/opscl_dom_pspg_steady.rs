@@ -4,7 +4,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OpSclDomPspg {
+pub struct OpSclDomPspgSteady {
     // domain
     pub dom_id: usize,
 
@@ -19,9 +19,9 @@ pub struct OpSclDomPspg {
     pub vel_id: usize, // velocity
 }
 
-impl OpSclDomPspg {
-    pub fn new(dom_id: usize, den_id: usize, visc_id: usize, vel_id: usize, pres_id: usize, fce_id: usize, unk_id: usize) -> OpSclDomPspg {
-        // adds PSPG stabilization to the continuity equation
+impl OpSclDomPspgSteady {
+    pub fn new(dom_id: usize, den_id: usize, visc_id: usize, vel_id: usize, pres_id: usize, fce_id: usize, unk_id: usize) -> OpSclDomPspgSteady {
+        // adds steady PSPG stabilization to the continuity equation
         // d(rho)/dt = -div(rho * v)
         // 
         // den - density (rho)
@@ -32,7 +32,7 @@ impl OpSclDomPspg {
         // unk - unknown scalar (equation added to rows of this scalar; e.g., pressure)
 
         // create struct
-        let mut oper_pspg = OpSclDomPspg::default();
+        let mut oper_pspg = OpSclDomPspgSteady::default();
         oper_pspg.dom_id = dom_id;
         oper_pspg.den_id = den_id;
         oper_pspg.visc_id = visc_id;
@@ -62,9 +62,9 @@ impl OpSclDomPspg {
     }
 }
 
-impl OperatorBase for OpSclDomPspg {
+impl OperatorBase for OpSclDomPspgSteady {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
-        // applies the weak form of the PSPG stabilization term
+        // applies the weak form of the steady PSPG stabilization term
         // tau * (grad(w), rho * v . grad(v) + grad(p) - f)_dom
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS

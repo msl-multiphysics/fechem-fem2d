@@ -4,7 +4,7 @@ use faer::Col;
 use faer::sparse::Triplet;
 
 #[derive(Default)]
-pub struct OpVecDomSupg {
+pub struct OpVecDomSupgSteady {
     // domain
     pub dom_id: usize,
 
@@ -19,9 +19,9 @@ pub struct OpVecDomSupg {
     pub drv_id: usize, // driving vector
 }
 
-impl OpVecDomSupg {
-    pub fn new(dom_id: usize, den_id: usize, visc_id: usize, unk_id: usize, pres_id: usize, fce_id: usize, drv_id: usize) -> OpVecDomSupg {
-        // adds SUPG stabilization to the momentum transport equation
+impl OpVecDomSupgSteady {
+    pub fn new(dom_id: usize, den_id: usize, visc_id: usize, unk_id: usize, pres_id: usize, fce_id: usize, drv_id: usize) -> OpVecDomSupgSteady {
+        // adds steady SUPG stabilization to the momentum transport equation
         // d(den_i * v_i)/dt = -div(T_i) + f_i
         // 
         // den - density (den_i)
@@ -32,7 +32,7 @@ impl OpVecDomSupg {
         // drv - driving vector (v_j)
 
         // create struct
-        let mut oper_supg = OpVecDomSupg::default();
+        let mut oper_supg = OpVecDomSupgSteady::default();
         oper_supg.dom_id = dom_id;
         oper_supg.den_id = den_id;
         oper_supg.visc_id = visc_id;
@@ -62,9 +62,9 @@ impl OpVecDomSupg {
     }
 }
 
-impl OperatorBase for OpVecDomSupg {
+impl OperatorBase for OpVecDomSupgSteady {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
-        // applies the weak form of the SUPG stabilization term
+        // applies the weak form of the steady SUPG stabilization term
         // tau * (v_j . grad(w), rho * v_j . grad(v_i) + grad_i(p) - f_i)_dom
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS

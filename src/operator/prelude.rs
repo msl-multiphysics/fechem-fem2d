@@ -12,7 +12,8 @@ pub use super::opscl_dom_diff::*;
 pub use super::opscl_dom_src::*;
 pub use super::opscl_dom_time::*;
 pub use super::opscl_dom_div::*;
-pub use super::opscl_dom_pspg::*;
+pub use super::opscl_dom_pspg_steady::*;
+pub use super::opscl_dom_pspg_time::*;
 
 // scalar interface operators
 pub use super::opscl_itf_cont::*;
@@ -23,7 +24,8 @@ pub use super::opvec_dom_adv::*;
 pub use super::opvec_dom_pres::*;
 pub use super::opvec_dom_diff::*;
 pub use super::opvec_dom_src::*;
-pub use super::opvec_dom_supg::*;
+pub use super::opvec_dom_supg_steady::*;
+pub use super::opvec_dom_supg_time::*;
 pub use super::opvec_dom_time::*;
 
 // vector boundary operators

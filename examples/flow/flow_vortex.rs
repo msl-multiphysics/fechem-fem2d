@@ -14,10 +14,10 @@ use std::fs::create_dir_all;
 ///
 /// Properties:
 /// - Density: 1000.0 kg m-3
-/// - Viscosity: 0.001 Pa s
+/// - Viscosity: 0.1 Pa s
 ///
 /// Boundary conditions:
-/// - Left boundary (velocity): <0.02, 0.0> m s-1
+/// - Left boundary (velocity): <1.0, 0.0> m s-1
 /// - Bottom boundary (velocity): <0.0, 0.0> m s-1
 /// - Right boundary (pressure): 0.0 Pa
 /// - Top boundary (velocity): <0.0, 0.0> m s-1
