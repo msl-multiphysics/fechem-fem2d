@@ -201,6 +201,28 @@ impl TransientBase for TransientHeat {
             let oper_hres = OpSclItfTransfer::new(itf_id, itf_htrn_id, dom_temp1_id, dom_temp2_id);
             self.oper_hres_itf.push(oper_hres);
         }
+
+        // step 4: project Dirichlet BCs onto the initial condition at t = 0
+        // conflicting values at shared nodes (e.g. corners) are averaged,
+        // matching the stacked Dirichlet rows in assemble_matrix
+
+        // evaluate time-dependent prescribed values
+        vars.update_function(0.0);
+
+        // accumulate contributions using the same visitation as OpSclBndDirichlet::apply
+        let mut sum: HashMap<(usize, usize), f64> = HashMap::new();
+        let mut count: HashMap<(usize, usize), usize> = HashMap::new();
+        for oper_dir in &self.oper_bnd_temp {
+            oper_dir.apply_initial(vars, &mut sum, &mut count);
+        }
+
+        // write averaged values into both current and previous fields
+        for ((unk_id, nid), s) in sum {
+            let avg = s / (count[&(unk_id, nid)] as f64);
+            let unk = &mut vars.scl_dom[unk_id];
+            unk.node_value[nid] = avg;
+            unk.node_value_prev[nid] = avg;
+        }
     }
 
     fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {

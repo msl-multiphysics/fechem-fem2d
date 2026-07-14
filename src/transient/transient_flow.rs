@@ -235,6 +235,42 @@ impl TransientBase for TransientFlow {
             self.oper_cont_vel_itf.push(oper_cont_vel);
             self.oper_cont_pres_itf.push(oper_cont_pres);
         }
+
+        // step 4: project Dirichlet BCs onto the initial condition at t = 0
+        // conflicting values at shared nodes (e.g. corners) are averaged,
+        // matching the stacked Dirichlet rows in assemble_matrix
+
+        // evaluate time-dependent prescribed values
+        vars.update_function(0.0);
+
+        // velocity Dirichlet
+        let mut sum_x: HashMap<(usize, usize), f64> = HashMap::new();
+        let mut sum_y: HashMap<(usize, usize), f64> = HashMap::new();
+        let mut count_vel: HashMap<(usize, usize), usize> = HashMap::new();
+        for (oper_dir, _) in &self.oper_bnd_vel {
+            oper_dir.apply_initial(vars, &mut sum_x, &mut sum_y, &mut count_vel);
+        }
+        for ((unk_id, nid), s) in &sum_x {
+            let c = count_vel[&(*unk_id, *nid)] as f64;
+            let unk = &mut vars.vec_dom[*unk_id];
+            unk.node_value_x[*nid] = s / c;
+            unk.node_value_prev_x[*nid] = s / c;
+            unk.node_value_y[*nid] = sum_y[&(*unk_id, *nid)] / c;
+            unk.node_value_prev_y[*nid] = sum_y[&(*unk_id, *nid)] / c;
+        }
+
+        // pressure Dirichlet
+        let mut sum_p: HashMap<(usize, usize), f64> = HashMap::new();
+        let mut count_p: HashMap<(usize, usize), usize> = HashMap::new();
+        for (oper_dir, _) in &self.oper_bnd_pres {
+            oper_dir.apply_initial(vars, &mut sum_p, &mut count_p);
+        }
+        for ((unk_id, nid), s) in sum_p {
+            let avg = s / (count_p[&(unk_id, nid)] as f64);
+            let unk = &mut vars.scl_dom[unk_id];
+            unk.node_value[nid] = avg;
+            unk.node_value_prev[nid] = avg;
+        }
     }
 
     fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {

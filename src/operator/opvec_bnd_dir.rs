@@ -2,6 +2,7 @@ use crate::base::vars::Variables;
 use crate::operator::oper_base::OperatorBase;
 use faer::Col;
 use faer::sparse::Triplet;
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct OpVecBndDirichlet {
@@ -25,6 +26,35 @@ impl OpVecBndDirichlet {
 
         // result
         oper_dir
+    }
+
+    pub fn apply_initial(&self, vars: &Variables, sum_x: &mut HashMap<(usize, usize), f64>, sum_y: &mut HashMap<(usize, usize), f64>, count: &mut HashMap<(usize, usize), usize>) {
+        // accumulate prescribed values for initial-condition projection
+        // visits the same (element, node) pairs as apply so that corner
+        // conflicts and shared edge nodes average the same way as Ax = b
+        // key: (unk_id, nid_dom)
+
+        // get objects
+        let bnd = &vars.bnd[self.bnd_id];
+        let val = &vars.vec_bnd[self.val_id];
+
+        // iterate over elements
+        for eid in 0..bnd.num_elem {
+            // iterate over nodes in element
+            let num_node = bnd.elem_node[eid];
+            let node_id = &bnd.elem_node_id[eid];
+            for v in 0..num_node {
+                // get node ids
+                let nid_bnd = node_id[v];
+                let nid_dom = bnd.node_bnd_dom_id[nid_bnd];
+
+                // accumulate prescribed value
+                let key = (self.unk_id, nid_dom);
+                *sum_x.entry(key).or_insert(0.0) += val.node_value_x[nid_bnd];
+                *sum_y.entry(key).or_insert(0.0) += val.node_value_y[nid_bnd];
+                *count.entry(key).or_insert(0) += 1;
+            }
+        }
     }
 }
 
