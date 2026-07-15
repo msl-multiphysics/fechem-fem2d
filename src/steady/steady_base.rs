@@ -12,8 +12,10 @@ use std::time::{Duration, Instant};
 
 // base trait for steady-state solvers.
 pub trait SteadyBase {
-    // to be implemented in specific solver
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize); // must set mat_size
+    // to be implemented in specific solvers
+    fn initial_matrix(&self, vars: &mut Variables) -> usize; // computes matrix size
+    fn initial_dirichlet(&self, vars: &mut Variables); // flags dirichlet boundaries
+    fn initial_operator(&mut self, vars: &mut Variables); // initializes operators
     fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize); // must reset a_mat and b_vec
 
     fn solve(&mut self, vars: &mut Variables, solver: Box<dyn SolverBase>, max_iter: usize, tol: f64, damp: f64) -> Result<(), FEChemError> {
@@ -35,10 +37,13 @@ pub trait SteadyBase {
         let mut time_assemble = Duration::ZERO;
         let mut time_solve = Duration::ZERO;
 
+        let time_0 = Instant::now();
+
         // initialize operators
         // also compute the matrix size
-        let mut mat_size = 0;
-        self.assemble_operator(vars, &mut mat_size);
+        let mat_size = self.initial_matrix(vars);
+        self.initial_dirichlet(vars);
+        self.initial_operator(vars);
 
         // initialize solver vectors
         let mut a_mat: SparseColMat<usize, f64> = SparseColMat::try_new_from_triplets(0, 0, &[])
@@ -46,8 +51,6 @@ pub trait SteadyBase {
         let mut b_vec: Col<f64> = Col::zeros(mat_size);
         let mut x_udmp_vec: Col<f64>;
         let mut x_iter_vec: Col<f64> = Col::zeros(mat_size);
-
-        let time_0 = Instant::now();
 
         // load initial unknown values into iteration vector
         for scldom in &vars.scl_dom {
@@ -91,7 +94,7 @@ pub trait SteadyBase {
         self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size);
 
         let time_1 = Instant::now();
-        time_assemble += time_1.duration_since(time_0);
+        let time_initial = time_1.duration_since(time_0);
 
         // iterate to convergence
         let mut iter = 0;
@@ -148,6 +151,7 @@ pub trait SteadyBase {
         // output time measurement (Duration -> seconds as f64)
         println!("Solution completed!");
         println!("Total time: {:.6} s", time_total.as_secs_f64());
+        println!("  Initialization time: {:.6} s", time_initial.as_secs_f64());
         println!("  Assembly time: {:.6} s", time_assemble.as_secs_f64());
         println!("  Solve time: {:.6} s", time_solve.as_secs_f64());
         println!("  Write time: {:.6} s", time_write.as_secs_f64());

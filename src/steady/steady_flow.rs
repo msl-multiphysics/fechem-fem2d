@@ -84,9 +84,7 @@ impl SteadyFlow {
 }
 
 impl SteadyBase for SteadyFlow {
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize) {
-        // step 1: compute matrix size
-
+    fn initial_matrix(&self, vars: &mut Variables) -> usize {
         // assign start indices for unknowns
         let mut xid = 0;
         for (&dom_id, &vel_id) in &self.itr_vel {
@@ -112,11 +110,11 @@ impl SteadyBase for SteadyFlow {
             xid += num_node;
         }
 
-        // set matrix size to last unknown index
-        *mat_size = xid;
-
-        // step 2: flag dirichlet boundaries
-
+        // return matrix size
+        xid
+    }
+    
+    fn initial_dirichlet(&self, vars: &mut Variables) {
         // list of mesh node ids with dirichlet boundaries
         let mut vel_dir_nid: HashSet<usize> = HashSet::new();
         let mut pres_dir_nid: HashSet<usize> = HashSet::new();
@@ -173,9 +171,10 @@ impl SteadyBase for SteadyFlow {
                 lmd.node_dir[itf_nid] = pres_dir_nid.contains(&mesh_nid);
             }
         }
-        
-        // step 3: assemble operators
 
+    }
+    
+    fn initial_operator(&mut self, vars: &mut Variables) {
         // internal operator
         for &dom_id in &self.itr_dom {
             let vel_id = self.itr_vel[&dom_id];

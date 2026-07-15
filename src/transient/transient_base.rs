@@ -12,7 +12,9 @@ use std::time::{Duration, Instant};
 // base trait for transient solvers.
 pub trait TransientBase {
     // to be implemented in specific solver
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize); // must set mat_size
+    fn initial_matrix(&self, vars: &mut Variables) -> usize; // computes matrix size
+    fn initial_dirichlet(&self, vars: &mut Variables); // flags dirichlet boundaries
+    fn initial_operator(&mut self, vars: &mut Variables); // initializes operators
     fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64); // must reset a_mat and b_vec
 
     fn solve(&mut self, vars: &mut Variables, solver: Box<dyn SolverBase>, dt: f64, num_ts: usize, num_ts_write: usize, max_iter: usize, tol: f64, damp: f64) -> Result<(), FEChemError> {
@@ -40,14 +42,18 @@ pub trait TransientBase {
         }
 
         // initialize time measurement
+        let mut time_initial = Duration::ZERO;
         let mut time_assemble = Duration::ZERO;
         let mut time_solve = Duration::ZERO;
         let mut time_write = Duration::ZERO;
 
+        let time_w0 = Instant::now();
+
         // initialize operators
         // also compute the matrix size
-        let mut mat_size = 0;
-        self.assemble_operator(vars, &mut mat_size);
+        let mat_size = self.initial_matrix(vars);
+        self.initial_dirichlet(vars);
+        self.initial_operator(vars);
 
         // initialize solver vectors
         let mut a_mat: SparseColMat<usize, f64> = SparseColMat::try_new_from_triplets(0, 0, &[])
@@ -94,13 +100,14 @@ pub trait TransientBase {
             }
         }
 
-        let time_w0 = Instant::now();
+        let time_w1 = Instant::now();
+        time_initial += time_w1.duration_since(time_w0);
 
         // write initial condition
         vars.write_scalar(0.0, 0)?;
 
-        let time_w1 = Instant::now();
-        time_write += time_w1.duration_since(time_w0);
+        let time_w2 = Instant::now();
+        time_write += time_w2.duration_since(time_w1);
 
         // iterate over time steps
         for ts in 0..num_ts {
@@ -190,6 +197,7 @@ pub trait TransientBase {
         // output time measurement (Duration -> seconds as f64)
         println!("Solution completed!");
         println!("Total time: {:.6} s", time_total.as_secs_f64());
+        println!("  Initialization time: {:.6} s", time_initial.as_secs_f64());
         println!("  Assembly time: {:.6} s", time_assemble.as_secs_f64());
         println!("  Solve time: {:.6} s", time_solve.as_secs_f64());
         println!("  Write time: {:.6} s", time_write.as_secs_f64());

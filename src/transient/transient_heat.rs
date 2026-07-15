@@ -81,9 +81,7 @@ impl TransientHeat {
 }
 
 impl TransientBase for TransientHeat {
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize) {
-        // step 1: compute matrix size
-
+    fn initial_matrix(&self, vars: &mut Variables) -> usize {
         // assign start indices for unknowns
         let mut xid = 0;
         for (&dom_id, &temp_id) in &self.itr_temp {
@@ -97,11 +95,11 @@ impl TransientBase for TransientHeat {
             xid += num_node;
         }
 
-        // set matrix size to last unknown index
-        *mat_size = xid;
+        // return matrix size
+        xid
+    }
 
-        // step 2: flag dirichlet boundaries
-
+    fn initial_dirichlet(&self, vars: &mut Variables) {
         // list of mesh node ids with dirichlet boundaries
         let mut dir_nid: HashSet<usize> = HashSet::new();
 
@@ -137,9 +135,9 @@ impl TransientBase for TransientHeat {
                 lmd.node_dir[itf_nid] = dir_nid.contains(&mesh_nid);
             }
         }
+    }
 
-        // step 3: assemble operators
-
+    fn initial_operator(&mut self, vars: &mut Variables) {
         // internal operator
         for &dom_id in &self.itr_dom {
             let temp_id = self.itr_temp[&dom_id];
@@ -202,27 +200,6 @@ impl TransientBase for TransientHeat {
             self.oper_hres_itf.push(oper_hres);
         }
 
-        // step 4: project Dirichlet BCs onto the initial condition at t = 0
-        // conflicting values at shared nodes (e.g. corners) are averaged,
-        // matching the stacked Dirichlet rows in assemble_matrix
-
-        // evaluate time-dependent prescribed values
-        vars.update_function(0.0);
-
-        // accumulate contributions using the same visitation as OpSclBndDirichlet::apply
-        let mut sum: HashMap<(usize, usize), f64> = HashMap::new();
-        let mut count: HashMap<(usize, usize), usize> = HashMap::new();
-        for oper_dir in &self.oper_bnd_temp {
-            oper_dir.apply_initial(vars, &mut sum, &mut count);
-        }
-
-        // write averaged values into both current and previous fields
-        for ((unk_id, nid), s) in sum {
-            let avg = s / (count[&(unk_id, nid)] as f64);
-            let unk = &mut vars.scl_dom[unk_id];
-            unk.node_value[nid] = avg;
-            unk.node_value_prev[nid] = avg;
-        }
     }
 
     fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {

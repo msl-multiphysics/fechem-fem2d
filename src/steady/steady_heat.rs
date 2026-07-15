@@ -79,9 +79,7 @@ impl SteadyHeat {
 }
 
 impl SteadyBase for SteadyHeat {
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize) {
-        // step 1: compute matrix size
-
+    fn initial_matrix(&self, vars: &mut Variables) -> usize {
         // assign start indices for unknowns
         let mut xid = 0;
         for (&dom_id, &temp_id) in &self.itr_temp {
@@ -95,11 +93,11 @@ impl SteadyBase for SteadyHeat {
             xid += num_node;
         }
 
-        // set matrix size to last unknown index
-        *mat_size = xid;
-
-        // step 2: flag dirichlet boundaries
-
+        // return matrix size
+        xid
+    }
+    
+    fn initial_dirichlet(&self, vars: &mut Variables) {
         // list of mesh node ids with dirichlet boundaries
         let mut dir_nid: HashSet<usize> = HashSet::new();
 
@@ -135,9 +133,9 @@ impl SteadyBase for SteadyHeat {
                 lmd.node_dir[itf_nid] = dir_nid.contains(&mesh_nid);
             }
         }
-
-        // step 3: assemble operators
-
+    }
+    
+    fn initial_operator(&mut self, vars: &mut Variables) {
         // internal operator
         for &dom_id in &self.itr_dom {
             let temp_id = self.itr_temp[&dom_id];

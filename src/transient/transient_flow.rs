@@ -83,9 +83,7 @@ impl TransientFlow {
 }
 
 impl TransientBase for TransientFlow {
-    fn assemble_operator(&mut self, vars: &mut Variables, mat_size: &mut usize) {
-        // step 1: compute matrix size
-
+    fn initial_matrix(&self, vars: &mut Variables) -> usize {
         // assign start indices for unknowns
         let mut xid = 0;
         for (&dom_id, &vel_id) in &self.itr_vel {
@@ -111,11 +109,11 @@ impl TransientBase for TransientFlow {
             xid += num_node;
         }
 
-        // set matrix size to last unknown index
-        *mat_size = xid;
+        // return matrix size
+        xid
+    }
 
-        // step 2: flag dirichlet boundaries
-
+    fn initial_dirichlet(&self, vars: &mut Variables) {
         // list of mesh node ids with dirichlet boundaries
         let mut vel_dir_nid: HashSet<usize> = HashSet::new();
         let mut pres_dir_nid: HashSet<usize> = HashSet::new();
@@ -172,9 +170,9 @@ impl TransientBase for TransientFlow {
                 lmd.node_dir[itf_nid] = pres_dir_nid.contains(&mesh_nid);
             }
         }
+    }
 
-        // step 3: assemble operators
-
+    fn initial_operator(&mut self, vars: &mut Variables) {
         // internal operator
         for &dom_id in &self.itr_dom {
             let vel_id = self.itr_vel[&dom_id];
@@ -234,42 +232,6 @@ impl TransientBase for TransientFlow {
             let oper_cont_pres = OpSclItfContinuity::new(itf_id, lmd_pres_id, dom_pres1_id, dom_pres2_id);
             self.oper_cont_vel_itf.push(oper_cont_vel);
             self.oper_cont_pres_itf.push(oper_cont_pres);
-        }
-
-        // step 4: project Dirichlet BCs onto the initial condition at t = 0
-        // conflicting values at shared nodes (e.g. corners) are averaged,
-        // matching the stacked Dirichlet rows in assemble_matrix
-
-        // evaluate time-dependent prescribed values
-        vars.update_function(0.0);
-
-        // velocity Dirichlet
-        let mut sum_x: HashMap<(usize, usize), f64> = HashMap::new();
-        let mut sum_y: HashMap<(usize, usize), f64> = HashMap::new();
-        let mut count_vel: HashMap<(usize, usize), usize> = HashMap::new();
-        for (oper_dir, _) in &self.oper_bnd_vel {
-            oper_dir.apply_initial(vars, &mut sum_x, &mut sum_y, &mut count_vel);
-        }
-        for ((unk_id, nid), s) in &sum_x {
-            let c = count_vel[&(*unk_id, *nid)] as f64;
-            let unk = &mut vars.vec_dom[*unk_id];
-            unk.node_value_x[*nid] = s / c;
-            unk.node_value_prev_x[*nid] = s / c;
-            unk.node_value_y[*nid] = sum_y[&(*unk_id, *nid)] / c;
-            unk.node_value_prev_y[*nid] = sum_y[&(*unk_id, *nid)] / c;
-        }
-
-        // pressure Dirichlet
-        let mut sum_p: HashMap<(usize, usize), f64> = HashMap::new();
-        let mut count_p: HashMap<(usize, usize), usize> = HashMap::new();
-        for (oper_dir, _) in &self.oper_bnd_pres {
-            oper_dir.apply_initial(vars, &mut sum_p, &mut count_p);
-        }
-        for ((unk_id, nid), s) in sum_p {
-            let avg = s / (count_p[&(unk_id, nid)] as f64);
-            let unk = &mut vars.scl_dom[unk_id];
-            unk.node_value[nid] = avg;
-            unk.node_value_prev[nid] = avg;
         }
     }
 
