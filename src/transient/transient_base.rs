@@ -6,7 +6,7 @@ use crate::base::vec_dom::VectorDomainType;
 use crate::base::vec_itf::VectorInterfaceType;
 use crate::solver::solver_base::SolverBase;
 use faer::Col;
-use faer::sparse::SparseColMat;
+use faer::sparse::{Pair, SparseColMat, SymbolicSparseColMat, Triplet};
 use std::time::{Duration, Instant};
 
 // base trait for transient solvers.
@@ -15,7 +15,7 @@ pub trait TransientBase {
     fn initial_matrix(&self, vars: &mut Variables) -> usize; // computes matrix size
     fn initial_dirichlet(&self, vars: &mut Variables); // flags dirichlet boundaries
     fn initial_operator(&mut self, vars: &mut Variables); // initializes operators
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64); // must reset a_mat and b_vec
+    fn assemble_matrix(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, dt: f64);
 
     fn solve(&mut self, vars: &mut Variables, solver: Box<dyn SolverBase>, dt: f64, num_ts: usize, num_ts_write: usize, max_iter: usize, tol: f64, damp: f64) -> Result<(), FEChemError> {
         let time_start = Instant::now();
@@ -50,15 +50,11 @@ pub trait TransientBase {
         let time_w0 = Instant::now();
 
         // initialize operators
-        // also compute the matrix size
         let mat_size = self.initial_matrix(vars);
         self.initial_dirichlet(vars);
         self.initial_operator(vars);
 
-        // initialize solver vectors
-        let mut a_mat: SparseColMat<usize, f64> = SparseColMat::try_new_from_triplets(0, 0, &[])
-            .expect("Failed to create empty sparse matrix.");
-        let mut b_vec: Col<f64> = Col::zeros(mat_size);
+        // initialize solution vectors
         let mut x_udmp_vec: Col<f64>;
         let mut x_iter_vec: Col<f64> = Col::zeros(mat_size);
 
@@ -100,6 +96,19 @@ pub trait TransientBase {
             }
         }
 
+        // initialize A matrix (triplet form) and b vector
+        let mut a_triplet: Vec<Triplet<usize, usize, f64>> = Vec::new();
+        let mut b_vec: Col<f64> = Col::zeros(mat_size);
+
+        // initial assembly used to find the sparsity pattern (values at t = 0)
+        // assume that sparsity pattern does not change during the iteration
+        vars.update_function(0.0);
+        self.assemble_matrix(vars, &mut a_triplet, &mut b_vec, 0.0, dt);
+        let a_pair: Vec<Pair<usize, usize>> = a_triplet.iter().map(|t| Pair::new(t.row, t.col)).collect();
+        let (symbolic, argsort) = SymbolicSparseColMat::try_new_from_indices(mat_size, mat_size, &a_pair)
+            .expect("Failed to build sparse matrix pattern from triplets.");
+        let num_triplet = a_triplet.len();
+
         let time_w1 = Instant::now();
         time_initial += time_w1.duration_since(time_w0);
 
@@ -110,14 +119,20 @@ pub trait TransientBase {
         time_write += time_w2.duration_since(time_w1);
 
         // iterate over time steps
+        let mut a_mat;
         for ts in 0..num_ts {
             let time_0 = Instant::now();
 
-            // initial assembly of A and b
+            // initial assembly of A and b for this timestep
             let t_next = (ts + 1) as f64 * dt; // backward Euler; use next time step for function evaluation
+            a_triplet = Vec::with_capacity(num_triplet);
+            b_vec = Col::zeros(mat_size);
             vars.update_function(t_next);
             vars.update_unknown(&x_iter_vec);
-            self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size, t_next, dt);
+            self.assemble_matrix(vars, &mut a_triplet, &mut b_vec, t_next, dt);
+            let a_vals: Vec<f64> = a_triplet.iter().map(|t| t.val).collect();
+            a_mat = SparseColMat::new_from_argsort(symbolic.clone(), &argsort, &a_vals)
+                .expect("Failed to create sparse matrix from triplets.");
 
             let time_1 = Instant::now();
             time_assemble += time_1.duration_since(time_0);
@@ -135,10 +150,14 @@ pub trait TransientBase {
                 let time_i1 = Instant::now();
 
                 // reassemble A_{k+1} and b_{k+1} with x_{k+1}
-                // assumed that a_mat and b_vec are reset within assemble_matrix
+                a_triplet = Vec::with_capacity(num_triplet);
+                b_vec = Col::zeros(mat_size);
                 vars.update_unknown(&x_damp_new);
                 vars.update_function(t_next);
-                self.assemble_matrix(vars, &mut a_mat, &mut b_vec, mat_size, t_next, dt);
+                self.assemble_matrix(vars, &mut a_triplet, &mut b_vec, t_next, dt);
+                let a_vals: Vec<f64> = a_triplet.iter().map(|t| t.val).collect();
+                a_mat = SparseColMat::new_from_argsort(symbolic.clone(), &argsort, &a_vals)
+                    .expect("Failed to create sparse matrix from triplets.");
 
                 let time_i2 = Instant::now();
 

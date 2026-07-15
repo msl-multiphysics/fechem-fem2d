@@ -4,7 +4,7 @@ use crate::base::vars::Variables;
 use crate::operator::prelude::*;
 use crate::transient::transient_base::TransientBase;
 use faer::Col;
-use faer::sparse::{SparseColMat, Triplet};
+use faer::sparse::Triplet;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
@@ -202,38 +202,31 @@ impl TransientBase for TransientHeat {
 
     }
 
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {
-        // initialize triplet for matrix assembly
-        let mut a_triplet: Vec<Triplet<usize, usize, f64>> = Vec::new();
-        *b_vec = Col::zeros(mat_size);
-
+    fn assemble_matrix(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, dt: f64) {
         // assemble internal data
         for (oper_time, oper_cond, oper_src) in &self.oper_itr {
-            oper_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
-            oper_cond.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_src.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_time.apply_time(vars, a_triplet, b_vec, t, dt, 1.0);
+            oper_cond.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_src.apply(vars, a_triplet, b_vec, t, 1.0);
         }
 
         // assemble boundary data
         for oper_dir in &self.oper_bnd_temp {
-            oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_dir.apply(vars, a_triplet, b_vec, t, 1.0);
         }
         for oper_neu in &self.oper_bnd_hflx {
-            oper_neu.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_neu.apply(vars, a_triplet, b_vec, t, 1.0);
         }
         for oper_htrn in &self.oper_bnd_htrn {
-            oper_htrn.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_htrn.apply(vars, a_triplet, b_vec, t, 1.0);
         }
 
         // assemble interface data
         for oper_cont in &self.oper_cont_itf {
-            oper_cont.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_cont.apply(vars, a_triplet, b_vec, t, 1.0);
         }
         for oper_hres in &self.oper_hres_itf {
-            oper_hres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_hres.apply(vars, a_triplet, b_vec, t, 1.0);
         }
-
-        // create sparse matrix from triplet
-        *a_mat = SparseColMat::try_new_from_triplets(mat_size, mat_size, &a_triplet).expect("Failed to create sparse matrix from triplets.");
     }
 }

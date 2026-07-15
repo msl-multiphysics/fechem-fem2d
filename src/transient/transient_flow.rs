@@ -6,7 +6,7 @@ use crate::base::vars::Variables;
 use crate::operator::prelude::*;
 use crate::transient::transient_base::TransientBase;
 use faer::Col;
-use faer::sparse::{SparseColMat, Triplet};
+use faer::sparse::Triplet;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
@@ -235,41 +235,37 @@ impl TransientBase for TransientFlow {
         }
     }
 
-    fn assemble_matrix(&self, vars: &Variables, a_mat: &mut SparseColMat<usize, f64>, b_vec: &mut Col<f64>, mat_size: usize, t: f64, dt: f64) {
-        // initialize triplet for matrix assembly
-        let mut a_triplet: Vec<Triplet<usize, usize, f64>> = Vec::new();
-        *b_vec = Col::zeros(mat_size);
-
+    fn assemble_matrix(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, dt: f64) {
         // assemble internal data
         for (oper_time, oper_adv, oper_pres, oper_diff, oper_src, oper_supg, oper_supg_time, oper_div, oper_pspg, oper_pspg_time) in &self.oper_itr {
-            oper_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
-            oper_adv.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_pres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_diff.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_src.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_supg.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_supg_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
-            oper_div.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_pspg.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_pspg_time.apply_time(vars, &mut a_triplet, b_vec, t, dt, 1.0);
+            oper_time.apply_time(vars, a_triplet, b_vec, t, dt, 1.0);
+            oper_adv.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_pres.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_diff.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_src.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_supg.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_supg_time.apply_time(vars, a_triplet, b_vec, t, dt, 1.0);
+            oper_div.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_pspg.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_pspg_time.apply_time(vars, a_triplet, b_vec, t, dt, 1.0);
         }
 
         // assemble boundary data
         for (oper_dir, oper_div) in &self.oper_bnd_vel {
-            oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_div.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_dir.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_div.apply(vars, a_triplet, b_vec, t, 1.0);
         }
         for (oper_dir, oper_pres) in &self.oper_bnd_pres {
-            oper_dir.apply(vars, &mut a_triplet, b_vec, t, 1.0);
-            oper_pres.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_dir.apply(vars, a_triplet, b_vec, t, 1.0);
+            oper_pres.apply(vars, a_triplet, b_vec, t, 1.0);
         }
 
         // assemble interface data
         for oper_cont in &self.oper_cont_vel_itf {
-            oper_cont.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_cont.apply(vars, a_triplet, b_vec, t, 1.0);
         }
         for oper_cont in &self.oper_cont_pres_itf {
-            oper_cont.apply(vars, &mut a_triplet, b_vec, t, 1.0);
+            oper_cont.apply(vars, a_triplet, b_vec, t, 1.0);
         }
 
         // set reference pressure
@@ -282,8 +278,5 @@ impl TransientBase for TransientFlow {
             a_triplet.push(Triplet::new(xid, xid, 1.0));
             b_vec[xid] = self.pref_pres;
         }
-
-        // create sparse matrix from triplet
-        *a_mat = SparseColMat::try_new_from_triplets(mat_size, mat_size, &a_triplet).expect("Failed to create sparse matrix from triplets.");
     }
 }
