@@ -11,6 +11,7 @@ pub use super::opscl_bnd_div::*;
 pub use super::opscl_dom_diff::*;
 pub use super::opscl_dom_src::*;
 pub use super::opscl_dom_time::*;
+pub use super::opscl_dom_time_unity::*;
 pub use super::opscl_dom_div::*;
 pub use super::opscl_dom_pspg_steady::*;
 pub use super::opscl_dom_pspg_time::*;

@@ -6,67 +6,67 @@ use std::fs::create_dir_all;
 ///
 /// Geometry:
 /// - Square with uniformly sized tri elements
-/// - Has a larger diagonal going from the lower left to the upper right
-/// - Has a smaller diagonal going from the lower right to the center
+/// - Has bottom-left and top-right corner rectangles
 ///
 /// Properties:
-/// - Thermal conductivity (all domains): 1.0 W m-1 K-1
-/// - Heat source (all domains): -500.0 W m-3
+/// - Thermal conductivity (middle): 0.5 W m-1 K-1
+/// - Thermal conductivity (bottom): 1.0 W m-1 K-1
+/// - Thermal conductivity (top): 1.0 W m-1 K-1
+/// - Heat source (middle): 0.0 W m-3
+/// - Heat source (bottom): -500.0 W m-3
+/// - Heat source (top): +500.0 W m-3
 ///
 /// Boundary conditions:
-/// - Left boundary (outward flux): 50.0 W m-2
-/// - Bottom boundary (no flux): 0
-/// - Right boundary (temperature): 300 K
-/// - Top boundary (temperature): 400 K
+/// - External boundies (outward flux): 300 K
 /// 
 /// Interface conditions:
-/// - Temperature and flux continuity at interfaces
+/// - Temperature and flux continuity at bottom-middle interface
+/// - Contact resistance (0.1 W m-2 K-1) at top-middle interface
 ///
 fn main() -> Result<(), FEChemError> {
     // output directory
     create_dir_all("examples/output_heat_multi").unwrap();
 
     // problem and mesh
-    let mut vars = Variables::new("examples/gmsh/gmsh_uniform_multi.msh".to_string())?;
+    let mut vars = Variables::new("examples/gmsh/gmsh_threereg.msh".to_string())?;
 
     // geometry
     // for interfaces, the order of the domains does not matter
-    let dom_tl = vars.add_dom(0)?;  // top-left triangle
-    let dom_r = vars.add_dom(1)?;   // right triangle
-    let dom_b = vars.add_dom(2)?;   // bottom triangle
-    let bnd_l = vars.add_bnd(dom_tl, 0)?;  // left (attached to top-left triangle)
-    let bnd_r = vars.add_bnd(dom_r, 1)?;   // right (attached to right triangle)
-    let bnd_b = vars.add_bnd(dom_b, 2)?;   // bottom (attached to bottom triangle)
-    let bnd_t = vars.add_bnd(dom_tl, 3)?;  // top (attached to top-left triangle)
-    let itf_l1 = vars.add_itf(dom_tl, dom_b, 4)?;  // large diagonal (lower-left half; joins top-left and bottom)
-    let itf_l2 = vars.add_itf(dom_tl, dom_r, 5)?;  // large diagonal (upper-right half; joins top-left and right)
-    let itf_s = vars.add_itf(dom_b, dom_r, 6)?;  // small diagonal (joins bottom and right)
+    let dom_m = vars.add_dom(0)?;  // middle
+    let dom_b = vars.add_dom(1)?;  // bottom
+    let dom_t = vars.add_dom(2)?;  // top
+    let bnd_lb = vars.add_bnd(dom_b, 0)?;  // bottom-left
+    let bnd_br = vars.add_bnd(dom_m, 1)?;  // bottom-right
+    let bnd_rt = vars.add_bnd(dom_t, 2)?;  // top-right
+    let bnd_tb = vars.add_bnd(dom_m, 3)?;  // top-bottom
+    let itf_bm = vars.add_itf(dom_b, dom_m, 4)?;  // bottom-middle
+    let itf_tm = vars.add_itf(dom_t, dom_m, 5)?;  // top-middle
 
     // variables
     // lagrange multipliers are needed for continuity interfaces
-    let temp_tl = vars.add_scldom_unk(dom_tl, 0.0, "examples/output_heat_multi/temp_tl.vtu".to_string())?;
-    let temp_r = vars.add_scldom_unk(dom_r, 0.0, "examples/output_heat_multi/temp_r.vtu".to_string())?;
+    // however, they are not needed for contact resistance interfaces
+    let temp_m = vars.add_scldom_unk(dom_m, 0.0, "examples/output_heat_multi/temp_m.vtu".to_string())?;
     let temp_b = vars.add_scldom_unk(dom_b, 0.0, "examples/output_heat_multi/temp_b.vtu".to_string())?;
-    let lmd_l1 = vars.add_sclitf_unk(itf_l1, 0.0, "".to_string())?;  // lagrange multiplier for large diagonal (lower-left half)
-    let lmd_l2 = vars.add_sclitf_unk(itf_l2, 0.0, "".to_string())?;  // lagrange multiplier for large diagonal (upper-right half)
-    let lmd_s = vars.add_sclitf_unk(itf_s, 0.0, "".to_string())?;  // lagrange multiplier for small diagonal
+    let temp_t = vars.add_scldom_unk(dom_t, 0.0, "examples/output_heat_multi/temp_t.vtu".to_string())?;
+    let lmd_bm = vars.add_sclitf_unk(itf_bm, 0.0, "".to_string())?;  // lagrange multiplier for bottom-middle
 
     // constant properties on mesh
     // arguments: domain, value, output_file
     // set output file to empty string to not write to file
-    let cond_tl = vars.add_scldom_con(dom_tl, 1.0, "".to_string())?;
-    let cond_r = vars.add_scldom_con(dom_r, 1.0, "".to_string())?;
+    let cond_m = vars.add_scldom_con(dom_m, 0.5, "".to_string())?;
     let cond_b = vars.add_scldom_con(dom_b, 1.0, "".to_string())?;
-    let hsrc_tl = vars.add_scldom_con(dom_tl, -500.0, "".to_string())?;
-    let hsrc_r = vars.add_scldom_con(dom_r, -500.0, "".to_string())?;
+    let cond_t = vars.add_scldom_con(dom_t, 1.0, "".to_string())?;
+    let hsrc_m = vars.add_scldom_con(dom_m, 0.0, "".to_string())?;
     let hsrc_b = vars.add_scldom_con(dom_b, -500.0, "".to_string())?;
+    let hsrc_t = vars.add_scldom_con(dom_t, 500.0, "".to_string())?;
 
-    // constant properties on boundaries
+    // constant properties on boundaries and interfaces
     // arguments: boundary, value, output_file
-    let n_l = vars.add_sclbnd_con(bnd_l, 50.0, "".to_string())?; // positive for outward heat flux
-    let t_r = vars.add_sclbnd_con(bnd_r, 300.0, "".to_string())?;
-    let n_b = vars.add_sclbnd_con(bnd_b, 0.0, "".to_string())?;
-    let t_t = vars.add_sclbnd_con(bnd_t, 400.0, "".to_string())?;
+    let t_lb = vars.add_sclbnd_con(bnd_lb, 300.0, "".to_string())?;
+    let t_br = vars.add_sclbnd_con(bnd_br, 300.0, "".to_string())?;
+    let t_rt = vars.add_sclbnd_con(bnd_rt, 300.0, "".to_string())?;
+    let t_tb = vars.add_sclbnd_con(bnd_tb, 300.0, "".to_string())?;
+    let r_tm = vars.add_sclitf_con(itf_tm, 0.1, "".to_string())?;  // contact resistance for top-middle
 
     // matrix solver
     // arguments: num_thread
@@ -74,16 +74,15 @@ fn main() -> Result<(), FEChemError> {
 
     // physics solver
     let mut phys = SteadyHeat::new();
-    phys.add_heat_dom(dom_tl, temp_tl, cond_tl, hsrc_tl);
-    phys.add_heat_dom(dom_r, temp_r, cond_r, hsrc_r);
+    phys.add_heat_dom(dom_m, temp_m, cond_m, hsrc_m);
     phys.add_heat_dom(dom_b, temp_b, cond_b, hsrc_b);
-    phys.add_hflx_bnd(bnd_l, n_l);  // flux BC
-    phys.add_temp_bnd(bnd_r, t_r);  // temperature BC
-    phys.add_hflx_bnd(bnd_b, n_b);  // flux BC
-    phys.add_temp_bnd(bnd_t, t_t);  // temperature BC
-    phys.add_cont_itf(itf_l1, lmd_l1); // continuity
-    phys.add_cont_itf(itf_l2, lmd_l2); // continuity
-    phys.add_cont_itf(itf_s, lmd_s);   // continuity
+    phys.add_heat_dom(dom_t, temp_t, cond_t, hsrc_t);
+    phys.add_temp_bnd(bnd_lb, t_lb);  // flux BC
+    phys.add_temp_bnd(bnd_br, t_br);  // flux BC
+    phys.add_temp_bnd(bnd_rt, t_rt);  // flux BC
+    phys.add_temp_bnd(bnd_tb, t_tb);  // flux BC
+    phys.add_cont_itf(itf_bm, lmd_bm); // continuity
+    phys.add_hres_itf(itf_tm, r_tm); // contact resistance
 
     // solve
     // arguments: vars, solver, max_iter, tol, damping_factor

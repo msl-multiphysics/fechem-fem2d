@@ -1,7 +1,7 @@
 use fechem_fem2d::*;
 use std::fs::create_dir_all;
 
-/// Steady-state heat equation with variable properties.
+/// Steady-state heat equation with non-constant properties.
 /// Run with: `cargo run --release --example heat_func`
 ///
 /// Geometry:
@@ -38,7 +38,7 @@ fn main() -> Result<(), FEChemError> {
     // initial_value is an initial guess for steady-state problems
     let temp = vars.add_scldom_unk(dom, 0.0, "examples/output_heat_func/temp.vtu".to_string())?;
 
-    // variable properties on mesh
+    // non-constant properties on mesh
     // arguments: domain, value_func, scldom_ids, output_file
     // value_func: time, scalar values (in the same order as scldom_ids; must be unknown-type scalars)
     let cond_func = |_t: f64, scl:&[f64]| 0.1 + 0.3 * scl[0];
@@ -46,7 +46,7 @@ fn main() -> Result<(), FEChemError> {
     let cond = vars.add_scldom_fun(dom, Box::new(cond_func), vec![temp], "".to_string())?;
     let hsrc = vars.add_scldom_fun(dom, Box::new(hsrc_func), vec![temp], "".to_string())?;
 
-    // variable properties on boundaries
+    // non-constant properties on boundaries
     // arguments: boundary, value_func, scldom_ids, output_file
     // value_func: time, scalar values (in the same order as scldom_ids; must be unknown-type scalars)
     let flux_func = |_t: f64, scl:&[f64]| 10.0 + 0.1 * scl[0];
