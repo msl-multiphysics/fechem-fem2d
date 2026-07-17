@@ -8,6 +8,12 @@ pub use super::opscl_bnd_trn::*;
 pub use super::opscl_bnd_div::*;
 
 // scalar domain operators
+pub use super::opscl_dom_adv::*;
+pub use super::opscl_dom_adv_unity::*;
+pub use super::opscl_dom_supg_steady::*;
+pub use super::opscl_dom_supg_steady_unity::*;
+pub use super::opscl_dom_supg_time::*;
+pub use super::opscl_dom_supg_time_unity::*;
 pub use super::opscl_dom_diff::*;
 pub use super::opscl_dom_src::*;
 pub use super::opscl_dom_time::*;

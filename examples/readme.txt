@@ -17,9 +17,10 @@ Change the directory to fechem_fem2d then run quickstart.rs:
 For the other examples, MOVE THE FILE to the "examples" before running:
 `cargo run --release --example name_of_file`
 
-You must MOVE THE FILE into the 'examples' folder. Otherwise it will not run.
-Correct: femchem_fem2d/examples/name_of_file.rs
-Wrong:   femchem_fem2d/examples/physics/name_of_file.rs
+You must MOVE THE FILE into the "examples" folder. Otherwise it will not run.
+         ^^^^^^^^^^^^^
+Correct : femchem_fem2d/examples/name_of_file.rs
+WRONG   : femchem_fem2d/examples/physics/name_of_file.rs
 
 List of Examples
 ----------------

@@ -233,6 +233,44 @@ impl VectorDomain {
         [grad_x, grad_y]
     }
 
+    pub fn compute_quad_grad(&self, vars: &Variables, eid: usize, qid: usize, t: f64) -> [[f64; 2]; 2] {
+        // gradient of a vector property at a quadrature point
+        // constants have zero gradient; unknowns use nodal interpolation;
+        // functions use the P1 interpolant of nodal property values
+        match &self.vec_type {
+            VectorDomainType::Constant { .. } => {
+                [[0.0, 0.0], [0.0, 0.0]]
+            }
+            VectorDomainType::Unknown { .. } => {
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                self.compute_quad_grad_unknown_domain(dom, itgdom, eid, qid)
+            }
+            VectorDomainType::Function { func, scldom_ids } => {
+                let dom = &vars.dom[self.dom_id];
+                let itgdom = &vars.itg_dom[self.dom_id];
+                let num_node = dom.elem_node[eid];
+                let mut grad_x = [0.0, 0.0];
+                let mut grad_y = [0.0, 0.0];
+                for v in 0..num_node {
+                    let nid = dom.elem_node_id[eid][v];
+                    let mut val = Vec::new();
+                    for &scldom_id in scldom_ids {
+                        val.push(vars.scl_dom[scldom_id].node_value[nid]);
+                    }
+                    let (value_x, value_y) = func(t, &val);
+                    let gnx = itgdom.quad_gnx[eid][qid][v];
+                    let gny = itgdom.quad_gny[eid][qid][v];
+                    grad_x[0] += gnx * value_x;
+                    grad_x[1] += gny * value_x;
+                    grad_y[0] += gnx * value_y;
+                    grad_y[1] += gny * value_y;
+                }
+                [grad_x, grad_y]
+            }
+        }
+    }
+
     pub fn compute_quad_unknown_boundary(&self, bnd: &Boundary, itgbnd: &IntegralBoundary, eid: usize, qid: usize) -> (f64, f64) {
         let num_node = bnd.elem_node[eid];
         let mut val_x = 0.0;

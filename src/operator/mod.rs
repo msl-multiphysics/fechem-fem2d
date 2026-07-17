@@ -9,6 +9,12 @@ pub mod opscl_bnd_trn;
 pub mod opscl_bnd_div;
 
 // scalar domain operators
+pub mod opscl_dom_adv;
+pub mod opscl_dom_adv_unity;
+pub mod opscl_dom_supg_steady;
+pub mod opscl_dom_supg_steady_unity;
+pub mod opscl_dom_supg_time;
+pub mod opscl_dom_supg_time_unity;
 pub mod opscl_dom_diff;
 pub mod opscl_dom_src;
 pub mod opscl_dom_time;
