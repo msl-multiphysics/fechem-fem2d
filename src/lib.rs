@@ -28,10 +28,12 @@ pub use crate::solver::solver_qr::*;
 pub use crate::steady::steady_base::*;
 pub use crate::steady::steady_flow::*;
 pub use crate::steady::steady_heat::*;
+pub use crate::steady::steady_heatflow::*;
 pub use crate::steady::steady_mass::*;
 
 // transient files
 pub use crate::transient::transient_base::*;
 pub use crate::transient::transient_heat::*;
+pub use crate::transient::transient_heatflow::*;
 pub use crate::transient::transient_flow::*;
 pub use crate::transient::transient_mass::*;
