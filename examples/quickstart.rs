@@ -5,68 +5,88 @@ use std::fs::create_dir_all;
 /// Run with: `cargo run --release --example quickstart`
 ///
 /// Geometry:
-/// - x-axis: 0.0 m to 1.0 m; 20 elements
-/// - y-axis: 0.0 m to 1.0 m; 20 elements
+/// Square domain defined by lengths along each axis.
+/// 
+///          bnd_3
+///       +---------+
+///       |         |
+/// bnd_0 |  dom_0  | bnd_1
+///       |         |
+///       +---------+
+///          bnd_2
+///
+/// Domains:
+/// 0 - main domain (1.0 m x 1.0 m)
+/// 
+/// Boundaries:
+/// 0 - left boundary (1.0 m)
+/// 1 - right boundary (1.0 m)
+/// 2 - bottom boundary (1.0 m)
+/// 3 - top boundary (1.0 m)
 ///
 /// Properties:
-/// - Thermal conductivity: 1.0 W m-1 K-1
-/// - Heat source: -500.0 W m-3
+/// dom_0 - thermal conductivity (k = 1.0 W m-1 K-1)
+/// dom_0 - heat source (Q = -500.0 W m-3)
 ///
 /// Boundary conditions:
-/// - Left boundary (outward flux): 50.0 W m-2
-/// - Bottom boundary (no flux): 0
-/// - Right boundary (temperature): 300 K
-/// - Top boundary (temperature): 400 K
+/// bnd_0 - outward flux (q = 50.0 W m-2)
+/// bnd_1 - temperature (T = 300 K)
+/// bnd_2 - no flux (q = 0.0 W m-2)
+/// bnd_3 - temperature (T = 400 K)
 ///
 fn main() -> Result<(), FEChemError> {
     // output directory
     create_dir_all("examples/output_quickstart").unwrap();
 
-    // problem and mesh
+    // mesh and variables
+    // new_from_bounds - create rectangular mesh from bounding box
     // arguments: x_min, y_min, x_max, y_max, num_elem_x, num_elem_y
     let mut vars = Variables::new_from_bounds(0.0, 0.0, 1.0, 1.0, 20, 20)?;
 
     // geometry
+    // if using new_from_bounds, the domain is region 0
+    // the left, right, bottom, and top boundaries are regions 0, 1, 2, and 3
     let dom = vars.add_dom(0)?;
     let bnd_l = vars.add_bnd(dom, 0)?;  // left
     let bnd_r = vars.add_bnd(dom, 1)?;  // right
     let bnd_b = vars.add_bnd(dom, 2)?;  // bottom
     let bnd_t = vars.add_bnd(dom, 3)?;  // top
 
-    // variables
+    // unknown domain scalars
     // arguments: domain, initial_value, output_file
-    // initial_value is an initial guess for steady-state problems
+    // initial_value - initial guess for steady-state problems; initial_value for transient problems
+    // output_file - can be .csv or .vtu; if empty string, no file is written
     let temp = vars.add_scldom_unk(dom, 0.0, "examples/output_quickstart/temp.vtu".to_string())?;
 
-    // constant properties on mesh
+    // constant domain scalars
     // arguments: domain, value, output_file
-    // set output file to empty string to not write to file
-    let cond = vars.add_scldom_con(dom, 1.0, "".to_string())?;
-    let hsrc = vars.add_scldom_con(dom, -500.0, "".to_string())?;
+    let cond = vars.add_scldom_con(dom, 1.0, "".to_string())?;  // thermal conductivity
+    let hsrc = vars.add_scldom_con(dom, -500.0, "".to_string())?;  // heat source (positive if source; negative if sink)
 
-    // constant properties on boundaries
+    // constant boundary scalars
     // arguments: boundary, value, output_file
-    let n_l = vars.add_sclbnd_con(bnd_l, 50.0, "".to_string())?; // positive for outward heat flux
-    let t_r = vars.add_sclbnd_con(bnd_r, 300.0, "".to_string())?;
-    let n_b = vars.add_sclbnd_con(bnd_b, 0.0, "".to_string())?;
-    let t_t = vars.add_sclbnd_con(bnd_t, 400.0, "".to_string())?;
+    let hflx_l = vars.add_sclbnd_con(bnd_l, 50.0, "".to_string())?;  // heat flux (positive if outward; negative if inward)
+    let temp_r = vars.add_sclbnd_con(bnd_r, 300.0, "".to_string())?;  // temperature
+    let hflx_b = vars.add_sclbnd_con(bnd_b, 0.0, "".to_string())?;  // heat flux
+    let temp_t = vars.add_sclbnd_con(bnd_t, 400.0, "".to_string())?;  // temperature
 
-    // matrix solver
-    // arguments: num_thread
-    let solver = SolverLu::new(1)?;
+    // steady-state heat transfer solver
+    // add_heat_dom - register domain with heat transfer
+    // add_hflx_bnd - register boundary with heat flux
+    // add_temp_bnd - register boundary with temperature
+    let mut phys = SteadyHeat::new();
+    phys.add_heat_dom(dom, temp, cond, hsrc);  // arguments: domain, T, k, Q
+    phys.add_hflx_bnd(bnd_l, hflx_l);  // arguments: boundary, q
+    phys.add_temp_bnd(bnd_r, temp_r);  // arguments: boundary, T
+    phys.add_hflx_bnd(bnd_b, hflx_b);  // arguments: boundary, q
+    phys.add_temp_bnd(bnd_t, temp_t);  // arguments: boundary, T
 
     // physics solver
-    let mut phys = SteadyHeat::new();
-    phys.add_heat_dom(dom, temp, cond, hsrc);
-    phys.add_hflx_bnd(bnd_l, n_l); // flux BC
-    phys.add_temp_bnd(bnd_r, t_r); // temperature BC
-    phys.add_hflx_bnd(bnd_b, n_b); // flux BC
-    phys.add_temp_bnd(bnd_t, t_t); // temperature BC
-
-    // solve
-    // arguments: vars, solver, max_iter, tol, damping_factor
-    // lower damping factor for better stability; higher for faster convergence
-    phys.solve(&mut vars, Box::new(solver), 10, 1e-3, 1.0)?;
+    // arguments: max_iter, tol, damping_factor
+    // damping_factor - between 0.0 and 1.0; lower for stability and higher for speed (if linear or nearly linear)
+    // for highly non-linear problems, using a lower damping factor (e.g., 0.8-0.9) may be faster
+    let linsolve = SolverLu::new(1)?;
+    phys.solve(&mut vars, Box::new(linsolve), 10, 1e-3, 1.0)?;
 
     Ok(())
 }
