@@ -7,6 +7,7 @@ pub use super::opscl_bnd_dir::*;
 pub use super::opscl_bnd_trn::*;
 pub use super::opscl_bnd_div::*;
 pub use super::opscl_bnd_out::*;
+pub use super::opscl_bnd_out_unity::*;
 
 // scalar domain operators
 pub use super::opscl_dom_adv::*;

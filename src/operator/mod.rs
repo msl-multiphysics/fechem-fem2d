@@ -8,6 +8,7 @@ pub mod opscl_bnd_dir;
 pub mod opscl_bnd_trn;
 pub mod opscl_bnd_div;
 pub mod opscl_bnd_out;
+pub mod opscl_bnd_out_unity;
 
 // scalar domain operators
 pub mod opscl_dom_adv;
