@@ -80,8 +80,8 @@ fn main() -> Result<(), FEChemError> {
     let vel_b = vars.add_vecbnd_con(bnd_b, 0.0, 0.0, "".to_string())?;  // velocity
     let vel_t = vars.add_vecbnd_con(bnd_t, 4.0e-4, 0.0, "".to_string())?;  // velocity
 
-    // steady-state flow solver
-    // add_flow_dom - register domain with flow
+    // steady-state momentum transfer solver
+    // add_flow_dom - register domain with momentum transfer
     // add_vel_bnd - register boundary with velocity
     // set_pres_ref - set reference pressure at a point
     let mut phys = SteadyFlow::new();

@@ -28,6 +28,7 @@ pub struct TransientHeatFlow {
     pub htrn_bnd: Vec<usize>,             // bnd with heat transfer BC
     pub htrn_htrn: HashMap<usize, usize>, // heat transfer coefficient
     pub htrn_text: HashMap<usize, usize>, // external temperature
+    pub hout_bnd: Vec<usize>,             // bnd with heat outflow BC
 
     // interface data
     pub hcnt_itf: Vec<usize>,             // itf with continuity BC
@@ -41,6 +42,7 @@ pub struct TransientHeatFlow {
     pub oper_bnd_temp: Vec<OpSclBndDirichlet>,
     pub oper_bnd_hflx: Vec<OpSclBndNeumann>,
     pub oper_bnd_htrn: Vec<OpSclBndTransfer>,
+    pub oper_bnd_hout: Vec<OpSclBndOutflow>,
     pub oper_hcnt_itf: Vec<OpSclItfContinuity>,
     pub oper_hres_itf: Vec<OpSclItfTransfer>,
 
@@ -106,6 +108,10 @@ impl TransientHeatFlow {
         self.htrn_bnd.push(bnd_id);
         self.htrn_htrn.insert(bnd_id, htrn_id);
         self.htrn_text.insert(bnd_id, text_id);
+    }
+
+    pub fn add_hout_bnd(&mut self, bnd_id: usize) {
+        self.hout_bnd.push(bnd_id);
     }
 
     pub fn add_hcnt_itf(&mut self, itf_id: usize, lmd_id: usize) {
@@ -229,20 +235,32 @@ impl TransientBase for TransientHeatFlow {
         }
 
         // iterate over heat scalars and flag dirichlet boundaries
+        // flag per domain so a Dirichlet BC on one domain does not mark the
+        // shared interface node as Dirichlet in the neighboring domain
         for (&dom_id, &temp_id) in &self.itr_temp {
+            let mut dom_temp_dir: HashSet<usize> = HashSet::new();
+            for &bnd_id in &self.temp_bnd {
+                if vars.bnd[bnd_id].dom_id == dom_id {
+                    for &mesh_nid in &vars.bnd[bnd_id].node_bnd_mesh_id {
+                        dom_temp_dir.insert(mesh_nid);
+                    }
+                }
+            }
             let dom = &vars.dom[dom_id];
             let temp = &mut vars.scl_dom[temp_id];
             for dom_nid in 0..dom.num_node {
                 let mesh_nid = dom.node_dom_mesh_id[dom_nid];
-                temp.node_dir[dom_nid] = temp_dir_nid.contains(&mesh_nid);
+                temp.node_dir[dom_nid] = dom_temp_dir.contains(&mesh_nid);
             }
         }
         for (&bnd_id, &hflx_id) in &self.hflx_hflx {
             let bnd = &vars.bnd[bnd_id];
+            let temp_id = self.itr_temp[&bnd.dom_id];
+            let temp = &vars.scl_dom[temp_id];
             let hflx = &mut vars.scl_bnd[hflx_id];
             for bnd_nid in 0..bnd.num_node {
-                let mesh_nid = bnd.node_bnd_mesh_id[bnd_nid];
-                hflx.node_dir[bnd_nid] = temp_dir_nid.contains(&mesh_nid);
+                let nid_dom = bnd.node_bnd_dom_id[bnd_nid];
+                hflx.node_dir[bnd_nid] = temp.node_dir[nid_dom];
             }
         }
         for (&itf_id, &lmd_id) in &self.hcnt_lmd {
@@ -339,6 +357,16 @@ impl TransientBase for TransientHeatFlow {
             let bnd_text_id = self.htrn_text[&bnd_id];
             let oper_htrn = OpSclBndTransfer::new(bnd_id, bnd_htrn_id, bnd_text_id, dom_temp_id);
             self.oper_bnd_htrn.push(oper_htrn);
+        }
+
+        // heat boundary outflow operator
+        for &bnd_id in &self.hout_bnd {
+            let dom_id = vars.bnd[bnd_id].dom_id;
+            let dom_temp_id = self.itr_temp[&dom_id];
+            let vlcp_id = self.itr_vlcp[&dom_id];
+            let vel_id = self.itr_vel[&dom_id];
+            let oper_out = OpSclBndOutflow::new(bnd_id, vlcp_id, vel_id, dom_temp_id);
+            self.oper_bnd_hout.push(oper_out);
         }
 
         // heat interface continuity operator
@@ -471,6 +499,9 @@ impl TransientBase for TransientHeatFlow {
         }
         for oper_htrn in &self.oper_bnd_htrn {
             oper_htrn.apply(vars, a_triplet, b_vec, t, 1.0);
+        }
+        for oper_out in &self.oper_bnd_hout {
+            oper_out.apply(vars, a_triplet, b_vec, t, 1.0);
         }
 
         // assemble flow interface data

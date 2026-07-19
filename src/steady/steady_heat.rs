@@ -109,20 +109,32 @@ impl SteadyBase for SteadyHeat {
         }
 
         // iterate over scalars and flag dirichlet boundaries
+        // flag per domain so a Dirichlet BC on one domain does not mark the
+        // shared interface node as Dirichlet in the neighboring domain
         for (&dom_id, &temp_id) in &self.itr_temp {
+            let mut dom_temp_dir: HashSet<usize> = HashSet::new();
+            for &bnd_id in &self.temp_bnd {
+                if vars.bnd[bnd_id].dom_id == dom_id {
+                    for &mesh_nid in &vars.bnd[bnd_id].node_bnd_mesh_id {
+                        dom_temp_dir.insert(mesh_nid);
+                    }
+                }
+            }
             let dom = &vars.dom[dom_id];
             let temp = &mut vars.scl_dom[temp_id];
             for dom_nid in 0..dom.num_node {
                 let mesh_nid = dom.node_dom_mesh_id[dom_nid];
-                temp.node_dir[dom_nid] = dir_nid.contains(&mesh_nid);
+                temp.node_dir[dom_nid] = dom_temp_dir.contains(&mesh_nid);
             }
         }
         for (&bnd_id, &hflx_id) in &self.hflx_hflx {
             let bnd = &vars.bnd[bnd_id];
+            let temp_id = self.itr_temp[&bnd.dom_id];
+            let temp = &vars.scl_dom[temp_id];
             let hflx = &mut vars.scl_bnd[hflx_id];
             for bnd_nid in 0..bnd.num_node {
-                let mesh_nid = bnd.node_bnd_mesh_id[bnd_nid];
-                hflx.node_dir[bnd_nid] = dir_nid.contains(&mesh_nid);
+                let nid_dom = bnd.node_bnd_dom_id[bnd_nid];
+                hflx.node_dir[bnd_nid] = temp.node_dir[nid_dom];
             }
         }
         for (&itf_id, &lmd_id) in &self.cont_lmd {

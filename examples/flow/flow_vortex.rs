@@ -92,8 +92,8 @@ fn main() -> Result<(), FEChemError> {
     // arguments: boundary, value, output_file
     let pres_r = vars.add_sclbnd_con(bnd_r, 0.0, "".to_string())?;  // pressure
 
-    // transient flow solver
-    // add_flow_dom - register domain with flow
+    // transient momentum transfer solver
+    // add_flow_dom - register domain with momentum transfer
     // add_vel_bnd - register boundary with velocity
     // add_pres_bnd - register boundary with pressure
     let mut phys = TransientFlow::new();

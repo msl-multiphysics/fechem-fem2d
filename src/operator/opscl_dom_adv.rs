@@ -43,6 +43,7 @@ impl OperatorBase for OpSclDomAdvection {
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
         // add +(m * c * v, grad(w))_dom to A
+        // the boundary term is assembled separately by OpSclBndOutflow
         // v is lagged by 1 iteration
     
         // get objects

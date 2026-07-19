@@ -41,12 +41,12 @@ impl OpSclBndTransfer {
 impl OperatorBase for OpSclBndTransfer {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the transfer term
-        // -(div(N, w)_dom = +(N, grad(w))_dom - (N . n, w)_bnd
+        // -(div(N), w)_dom = +(N, grad(w))_dom - (N . n, w)_bnd
         // with N . n = h * (c - c_ext)
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // add -(N . n, w)_bnd to A -> add -(h * c, w)_bnd to A -> add +(h * c, w)_bnd to A
-        // add +(h * c_ext, w)_bnd to b
+        // add -(N . n, w)_bnd to A -> add -(h * (c - c_ext), w)_bnd to A
+        // add -(h * c, w)_bnd to A and -(h * c_ext, w)_bnd to b
         
         // get objects
         let bnd = &vars.bnd[self.bnd_id];
@@ -74,7 +74,7 @@ impl OperatorBase for OpSclBndTransfer {
             for qid in 0..num_quad {
                 let trn = trn_scl.compute_quad(vars, eid, qid, t);
                 let ext = ext_scl.compute_quad(vars, eid, qid, t);
-                let coeff = factor * quad_w[qid] * jac_det[qid].sqrt();
+                let coeff = -factor * quad_w[qid] * jac_det[qid].sqrt();
                 for v in 0..num_node {
                     for j in 0..num_node {
                         a_loc[v][j] += coeff * trn * quad_n[qid][v] * quad_n[qid][j];

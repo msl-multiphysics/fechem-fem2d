@@ -47,10 +47,10 @@ fn main() -> Result<(), FEChemError> {
     // if using new_from_bounds, the domain is region 0
     // the left, right, bottom, and top boundaries are regions 0, 1, 2, and 3
     let dom = vars.add_dom(0)?;
-    let bnd_l = vars.add_bnd(dom, 0)?;  // left
-    let bnd_r = vars.add_bnd(dom, 1)?;  // right
-    let bnd_b = vars.add_bnd(dom, 2)?;  // bottom
-    let bnd_t = vars.add_bnd(dom, 3)?;  // top
+    let bnd_l = vars.add_bnd(dom, 0)?;
+    let bnd_r = vars.add_bnd(dom, 1)?;
+    let bnd_b = vars.add_bnd(dom, 2)?;
+    let bnd_t = vars.add_bnd(dom, 3)?;
 
     // unknown domain scalars
     // arguments: domain, initial_value, output_file

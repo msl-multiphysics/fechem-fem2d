@@ -27,16 +27,21 @@ List of Examples
 Below is a list of examples and the concepts they introduce:
 
 Heat Transfer
-- quickstart.rs | introduction to FEChem code
-- heat_func.rs  | non-constant thermal properties
-- heat_gmsh.rs  | importing custom meshes
-- heat_multi.rs | multiple domains
-- heat_time.rs  | transient heat transfer simulation
+- quickstart.rs   | introduction to FEChem code
+- heat_func.rs    | non-constant thermal properties
+- heat_gmsh.rs    | importing custom meshes
+- heat_multi.rs   | multiple domains
+- heat_time.rs    | transient heat transfer simulation
 
 Mass Transfer
-- mass_react.rs | steady-state diffusion-reaction system
+- mass_react.rs   | steady-state diffusion-reaction system
 
 Momentum Transfer
 - flow_channel.rs | flow through a Z-shaped channel
 - flow_lid.rs     | lid-driven cavity flow
 - flow_vortex.rs  | vortex shedding past a cylinder
+
+Heat and Momentum Transfer
+- heatflow_conv.rs   | natural convection
+- heatflow_heater.rs | heat transfer from a solid to a moving fluid
+- heatflow_lid.rs    | lid-driven cavity flow with heat transfer

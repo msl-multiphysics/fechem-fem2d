@@ -19,7 +19,7 @@ impl OpSclItfTransfer {
         // applies a transfer BC at the interface
         // d(m_i * c_i)/dt = -div(N_i) + R_i
         // N1 . n1 = h * (c1 - c2)
-        // N1 . n1 = N2 . n2
+        // N2 . n2 = -N1 . n1
         // 
         // trn - transfer coefficient (h)
         // unk1 - unknown scalar on domain 1 (c1)
@@ -43,12 +43,12 @@ impl OpSclItfTransfer {
 impl OperatorBase for OpSclItfTransfer {
     fn apply(&self, vars: &Variables, a_triplet: &mut Vec<Triplet<usize, usize, f64>>, _b_vec: &mut Col<f64>, t: f64, factor: f64) {
         // applies the weak form of the transfer term
-        // -(div(N, w)_dom = +(N, grad(w))_dom - (N . n, w)_bnd
+        // -(div(N), w)_dom = +(N, grad(w))_dom - (N . n, w)_bnd
         // with N1 . n1 = h * (c1 - c2) and N2 . n2 = -N1 . n1
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // c1: add +(h * c1, w)_itf to A and -(h * c2, w)_itf to A
-        // c2: add -(h * c1, w)_itf to A and +(h * c2, w)_itf to A
+        // c1: add -(h * (c1 - c2), w)_itf to A
+        // c2: add +(h * (c1 - c2), w)_itf to A
 
         // get objects
         let itf = &vars.itf[self.itf_id];
@@ -74,7 +74,7 @@ impl OperatorBase for OpSclItfTransfer {
             // assemble local matrix
             for qid in 0..num_quad {
                 let trn = trn_scl.compute_quad(eid, qid, t);
-                let coeff = factor * quad_w[qid] * trn * jac_det[qid].sqrt();
+                let coeff = -factor * quad_w[qid] * trn * jac_det[qid].sqrt();
                 for v in 0..num_node {
                     for j in 0..num_node {
                         a_loc[v][j] += coeff * quad_n[qid][v] * quad_n[qid][j];

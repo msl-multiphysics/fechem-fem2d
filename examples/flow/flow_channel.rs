@@ -75,8 +75,8 @@ fn main() -> Result<(), FEChemError> {
     // arguments: boundary, value, output_file
     let pres_o = vars.add_sclbnd_con(bnd_o, 0.0, "".to_string())?;  // pressure
 
-    // steady-state flow solver
-    // add_flow_dom - register domain with flow
+    // steady-state momentum transfer solver
+    // add_flow_dom - register domain with momentum transfer
     // add_vel_bnd - register boundary with velocity
     // add_pres_bnd - register boundary with pressure
     let mut phys = SteadyFlow::new();
