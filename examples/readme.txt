@@ -42,6 +42,14 @@ Momentum Transfer
 - flow_vortex.rs  | vortex shedding past a cylinder
 
 Heat and Momentum Transfer
-- heatflow_conv.rs   | natural convection
-- heatflow_heater.rs | heat transfer from a solid to a moving fluid
-- heatflow_lid.rs    | lid-driven cavity flow with heat transfer
+- heatflow_conv.rs    | natural convection
+- heatflow_heater.rs  | heat transfer from a solid to a moving fluid
+- heatflow_lid.rs     | lid-driven cavity flow with heat transfer
+
+Mass and Momentum Transfer
+- massflow_lid.rs     | lid-driven cavity flow with a reaction
+- massflow_channel.rs | reactive flow through a Z-shaped channel
+
+Heat, Mass, and Momentum Transfer
+- heatmassflow_lid.rs    | lid-driven cavity flow with a reaction and heat transfer
+- heatmassflow_heater.rs | heat transfer from a solid to a moving and reacting fluid
