@@ -92,6 +92,7 @@ pub trait SteadyBase {
         
         // make initial assembly of A and b
         // this will be used in the iteration and for finding the sparsity pattern
+        // assume that sparsity pattern does not change during the iteration
         self.assemble_matrix(vars, &mut a_triplet, &mut b_vec);
         let a_pair: Vec<Pair<usize, usize>> = a_triplet.iter().map(|t| Pair::new(t.row, t.col)).collect();
         let (symbolic, argsort) = SymbolicSparseColMat::try_new_from_indices(mat_size, mat_size, &a_pair)
