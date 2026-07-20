@@ -21,6 +21,7 @@ pub mod opscl_dom_diff;
 pub mod opscl_dom_src;
 pub mod opscl_dom_time;
 pub mod opscl_dom_time_unity;
+pub mod opscl_dom_den_time;
 pub mod opscl_dom_div;
 pub mod opscl_dom_pspg_steady;
 pub mod opscl_dom_pspg_time;
