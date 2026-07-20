@@ -41,8 +41,8 @@ use std::fs::create_dir_all;
 /// bnd_3 - temperature (T = 400 K)
 ///
 /// Interface conditions:
-/// itf_4 - contact resistance (0.1 W m-2 K-1)
-/// itf_5 - contact resistance (0.1 W m-2 K-1)
+/// itf_4 - temperature and flux continuity
+/// itf_5 - temperature and flux continuity
 /// 
 /// Momentum Transfer
 /// 
@@ -112,11 +112,11 @@ fn main() -> Result<(), FEChemError> {
     let temp_bs = vars.add_sclbnd_con(bnd_bs, 400.0, "".to_string())?;  // temperature
     let temp_ts = vars.add_sclbnd_con(bnd_ts, 400.0, "".to_string())?;  // temperature
 
-    // constant interface scalars
-    // arguments: interface, value, output_file
-    // contact resistance is needed for contact resistance interfaces
-    let hres_bc = vars.add_sclitf_con(itf_bc, 0.1, "".to_string())?;  // contact resistance
-    let hres_tc = vars.add_sclitf_con(itf_tc, 0.1, "".to_string())?;  // contact resistance
+    // unknown interface scalars
+    // arguments: interface, initial_value, output_file
+    // lagrange multipliers are needed for continuity interfaces
+    let lmd_bc = vars.add_sclitf_unk(itf_bc, 0.0, "".to_string())?;  // lagrange multiplier
+    let lmd_tc = vars.add_sclitf_unk(itf_tc, 0.0, "".to_string())?;  // lagrange multiplier
 
     // momentum transfer
 
@@ -151,7 +151,7 @@ fn main() -> Result<(), FEChemError> {
     // add_heat_dom - register domain with heat transfer
     // add_temp_bnd - register boundary with temperature
     // add_hout_bnd - register boundary with heat outflow
-    // add_hres_itf - register contact resistance interface
+    // add_hcnt_itf - register continuity interface
     // add_flow_dom - register domain with momentum transfer
     // add_vel_bnd - register boundary with velocity
     // add_pres_bnd - register boundary with pressure
@@ -163,8 +163,8 @@ fn main() -> Result<(), FEChemError> {
     phys.add_hout_bnd(bnd_o);  // arguments: boundary
     phys.add_temp_bnd(bnd_bs, temp_bs);  // arguments: boundary, T
     phys.add_temp_bnd(bnd_ts, temp_ts);  // arguments: boundary, T
-    phys.add_hres_itf(itf_bc, hres_bc);  // arguments: interface, contact resistance
-    phys.add_hres_itf(itf_tc, hres_tc);  // arguments: interface, contact resistance
+    phys.add_hcnt_itf(itf_bc, lmd_bc);  // arguments: interface, lagrange multiplier
+    phys.add_hcnt_itf(itf_tc, lmd_tc);  // arguments: interface, lagrange multiplier
     phys.add_flow_dom(dom_c, vel, pres, den, visc, fce);  // arguments: domain, v, p, rho, mu, f
     phys.add_vel_bnd(bnd_i, vel_i);  // arguments: boundary, v
     phys.add_pres_bnd(bnd_o, pres_o);  // arguments: boundary, p
@@ -174,9 +174,9 @@ fn main() -> Result<(), FEChemError> {
     // physics solver
     // arguments: max_iter, tol, damping_factor
     // damping_factor - between 0.0 and 1.0; lower for stability and higher for speed (if linear or nearly linear)
-    // for highly non-linear problems, using a lower damping factor (e.g., 0.8-0.9) may be faster
+    // for multiphysics problems, use a tolerance small enough to converge the results
     let linsolve = SolverLu::new(1)?;
-    phys.solve(&mut vars, Box::new(linsolve), 20, 1e-3, 1.0)?;
+    phys.solve(&mut vars, Box::new(linsolve), 50, 1e-5, 0.5)?;
 
     Ok(())
 }

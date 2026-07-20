@@ -19,15 +19,13 @@ impl OpSclBndOutflow {
         // applies an outflow BC to scalar transport equations
         // d(m_i * c_i)/dt = -div(N_i) + R_i
         // N_i += m_i * c_i * v
-        // N_i . n = m_i * c_i * max(v . n, 0)   (outgoing only; zero conductive flux)
+        // N_i . n = m_i * c_i * v . n
         //
         // wgt - weighting scalar (m_i)
         // vel - velocity vector (v)
         // unk - unknown scalar (c_i)
         // n is the outward normal from the boundary
         // completes the boundary term omitted by OpSclDomAdvection
-        // max(v . n, 0) suppresses backflow, which would otherwise act as an
-        // inflow without an exterior value and create outlet artifacts
 
         // create struct
         let mut oper_out = OpSclBndOutflow::default();
@@ -47,7 +45,7 @@ impl OperatorBase for OpSclBndOutflow {
         // -(div(m * c * v), w)_dom = +(m * c * v, grad(w))_dom - (m * c * v . n, w)_bnd
         //
         // let A (in Ax = b) be the RHS of the PDE and b in the LHS
-        // add -(m * c * max(v . n, 0), w)_bnd to A
+        // add -(m * c * v . n, w)_bnd to A
         // v is lagged by 1 iteration
 
         // get objects
@@ -79,8 +77,7 @@ impl OperatorBase for OpSclBndOutflow {
                 let normal_x = -jac_mat[qid][0][1];
                 let normal_y = -jac_mat[qid][1][1];
                 let vn = vel_x * normal_x + vel_y * normal_y;
-                let vn_out = vn.max(0.0);
-                let coeff = -factor * quad_w[qid] * wgt * vn_out;
+                let coeff = -factor * quad_w[qid] * wgt * vn;
                 for v in 0..num_node {
                     for j in 0..num_node {
                         a_loc[v][j] += coeff * quad_n[qid][v] * quad_n[qid][j];

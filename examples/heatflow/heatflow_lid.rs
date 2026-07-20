@@ -139,9 +139,9 @@ fn main() -> Result<(), FEChemError> {
     // physics solver
     // arguments: max_iter, tol, damping_factor
     // damping_factor - between 0.0 and 1.0; lower for stability and higher for speed (if linear or nearly linear)
-    // for highly non-linear problems, using a lower damping factor (e.g., 0.8-0.9) may be faster
+    // for multiphysics problems, use a tolerance small enough to converge the results
     let linsolve = SolverLu::new(1)?;
-    phys.solve(&mut vars, Box::new(linsolve), 20, 1e-3, 1.0)?;
+    phys.solve(&mut vars, Box::new(linsolve), 50, 1e-5, 0.5)?;
 
     Ok(())
 }
