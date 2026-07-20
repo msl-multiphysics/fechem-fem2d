@@ -42,8 +42,8 @@ use std::collections::HashMap;
 /// bnd_3 - temperature (T = 400 K)
 ///
 /// Interface conditions:
-/// itf_4 - contact resistance (0.1 W m-2 K-1)
-/// itf_5 - contact resistance (0.1 W m-2 K-1)
+/// itf_4 - temperature and flux continuity
+/// itf_5 - temperature and flux continuity
 /// 
 /// Mass Transfer
 /// 
@@ -54,7 +54,7 @@ use std::collections::HashMap;
 /// [D_BA D_BB]   [0.0 1.0e-3]
 /// dom_0 - Arrhenius reaction rates (mol m-3 s-1; positive if production)
 /// k = A * exp(-Ea / (R * T))
-/// A = 168.0 s-1; Ea = 3.0e4 J mol-1; R = 8.314 J mol-1 K-1
+/// A = 16.8 s-1; Ea = 3.0e4 J mol-1; R = 8.314 J mol-1 K-1
 /// [R_A] = [-k * c_A]
 /// [R_B]   [+k * c_A]
 /// dom_1 - unused domain; solid
@@ -140,11 +140,11 @@ fn main() -> Result<(), FEChemError> {
     let temp_bs = vars.add_sclbnd_con(bnd_bs, 400.0, "".to_string())?;  // temperature
     let temp_ts = vars.add_sclbnd_con(bnd_ts, 400.0, "".to_string())?;  // temperature
 
-    // constant interface scalars
-    // arguments: interface, value, output_file
-    // contact resistance is needed for contact resistance interfaces
-    let hres_bc = vars.add_sclitf_con(itf_bc, 0.1, "".to_string())?;  // contact resistance
-    let hres_tc = vars.add_sclitf_con(itf_tc, 0.1, "".to_string())?;  // contact resistance
+    // unknown interface scalars
+    // arguments: interface, initial_value, output_file
+    // lagrange multipliers are needed for continuity interfaces
+    let lmd_bc = vars.add_sclitf_unk(itf_bc, 0.0, "".to_string())?;  // lagrange multiplier
+    let lmd_tc = vars.add_sclitf_unk(itf_tc, 0.0, "".to_string())?;  // lagrange multiplier
 
     // mass transfer
 
@@ -168,11 +168,11 @@ fn main() -> Result<(), FEChemError> {
     // Arrhenius rate: k = A * exp(-Ea / (R * T)); R_A = -k * c_A; R_B = +k * c_A
     let msrc_a_func = |_t: f64, scl: &[f64]| {
         let (c_a, temp) = (scl[0], scl[1]);
-        -168.0 * (-3.0e4 / (8.314 * temp)).exp() * c_a
+        -16.8 * (-3.0e4 / (8.314 * temp)).exp() * c_a
     };  // scl[0] is c_A; scl[1] is T
     let msrc_b_func = |_t: f64, scl: &[f64]| {
         let (c_a, temp) = (scl[0], scl[1]);
-        168.0 * (-3.0e4 / (8.314 * temp)).exp() * c_a
+        16.8 * (-3.0e4 / (8.314 * temp)).exp() * c_a
     };  // scl[0] is c_A; scl[1] is T
     let msrc_a = vars.add_scldom_fun(dom_c, Box::new(msrc_a_func), vec![conc_a, temp_c], "".to_string())?;  // reaction rate R_A
     let msrc_b = vars.add_scldom_fun(dom_c, Box::new(msrc_b_func), vec![conc_a, temp_c], "".to_string())?;  // reaction rate R_B
@@ -219,7 +219,7 @@ fn main() -> Result<(), FEChemError> {
     // add_heat_dom - register domain with heat transfer
     // add_temp_bnd - register boundary with temperature
     // add_hout_bnd - register boundary with heat outflow
-    // add_hres_itf - register contact resistance interface
+    // add_hcnt_itf - register continuity interface
     // add_mass_dom - register domain with mass transfer
     // add_conc_bnd - register boundary with concentration
     // add_mflx_bnd - register boundary with molar flux
@@ -235,8 +235,8 @@ fn main() -> Result<(), FEChemError> {
     phys.add_hout_bnd(bnd_o);  // arguments: boundary
     phys.add_temp_bnd(bnd_bs, temp_bs);  // arguments: boundary, T
     phys.add_temp_bnd(bnd_ts, temp_ts);  // arguments: boundary, T
-    phys.add_hres_itf(itf_bc, hres_bc);  // arguments: interface, contact resistance
-    phys.add_hres_itf(itf_tc, hres_tc);  // arguments: interface, contact resistance
+    phys.add_hcnt_itf(itf_bc, lmd_bc);  // arguments: interface, lagrange multiplier
+    phys.add_hcnt_itf(itf_tc, lmd_tc);  // arguments: interface, lagrange multiplier
     phys.add_mass_dom(0, dom_c, conc_a, diff_a, msrc_a);  // arguments: component, domain, conc, diff, msrc
     phys.add_mass_dom(1, dom_c, conc_b, diff_b, msrc_b);  // arguments: component, domain, conc, diff, msrc
     phys.add_conc_bnd(0, bnd_i, conc_a_i);  // arguments: component, boundary, conc
@@ -256,9 +256,9 @@ fn main() -> Result<(), FEChemError> {
     // physics solver
     // arguments: max_iter, tol, damping_factor
     // damping_factor - between 0.0 and 1.0; lower for stability and higher for speed (if linear or nearly linear)
-    // for highly non-linear problems, using a lower damping factor (e.g., 0.8-0.9) may be faster
+    // for multiphysics problems, use a tolerance small enough to converge the results
     let linsolve = SolverLu::new(1)?;
-    phys.solve(&mut vars, Box::new(linsolve), 20, 1e-5, 1.0)?;
+    phys.solve(&mut vars, Box::new(linsolve), 100, 1e-5, 0.5)?;
 
     Ok(())
 }
