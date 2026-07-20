@@ -34,7 +34,7 @@ Requirements
 
 Quick Start
 -----------
-Clone or download the project, change to the fechem_fem2d directory, and run `cargo run --release --example quickstart`
+Clone or download the project, change to the fechem_fem2d directory, and run `cargo run --release --example quickstart`.
 This example solves a steady heat transfer problem on a square mesh and writes the temperature field to `examples/output_quickstart/temp_0.vtu`.
 Other examples can be found in the `examples` folder. An overview of the examples is provided in `examples/readme.txt`.
 
